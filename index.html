@@ -1,28 +1,31 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Interview Prep Buddy - AI-Powered Interview Practice</title>
-  <meta name="description" content="Practice interview questions, record your answers, and get instant AI feedback to boost your confidence and land your dream job.">
+  <meta name="description"
+    content="Practice interview questions, record your answers, and get instant AI feedback to boost your confidence and land your dream job.">
   <link rel="stylesheet" href="styles.css">
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 </head>
+
 <body>
   <!-- Navigation -->
   <nav class="navbar">
     <div class="nav-container">
-<a href="#" class="nav-logo" onclick="showPage('home')">
-  <img src="favicon.ico" alt="Interview Prep Buddy Logo" class="logo-image">
-  <span class="logo-text">Interview Prep Buddy</span>
-</a>
+      <a href="#" class="nav-logo" onclick="showPage('home')">
+        <img src="favicon.ico" alt="Interview Prep Buddy Logo" class="logo-image">
+        <span class="logo-text">Interview Prep Buddy</span>
+      </a>
 
       <div class="nav-links">
         <a href="#" class="nav-link active" data-page="home" onclick="showPage('home')">Home</a>
         <a href="#" class="nav-link" data-page="practice" onclick="showPage('practice')">Practice</a>
         <a href="#" class="nav-link" data-page="feedback" onclick="showPage('feedback')">Feedback</a>
         <a href="#" class="nav-link" data-page="contribute" onclick="showPage('contribute')">Contribute</a>
-        
+
       </div>
       <div class="nav-actions">
         <button class="theme-toggle" onclick="toggleTheme()" title="Toggle theme">🌙</button>
@@ -50,14 +53,15 @@
           <span class="gradient-text">AI-Powered Practice</span>
         </h1>
         <p class="hero-description">
-          Practice interview questions, record your answers, and get instant AI feedback 
+          Practice interview questions, record your answers, and get instant AI feedback
           to boost your confidence and land your dream job. Open source and free forever.
         </p>
         <div class="hero-actions">
           <button class="btn btn-primary btn-lg" onclick="showPage('practice')">
             Start Practicing →
           </button>
-          <a href="https://github.com/RelaxItsAryan/Interview-Prep-Buddy.git" target="_blank" class="btn btn-outline btn-lg">
+          <a href="https://github.com/RelaxItsAryan/Interview-Prep-Buddy.git" target="_blank"
+            class="btn btn-outline btn-lg">
             View on GitHub
           </a>
         </div>
@@ -109,7 +113,8 @@
   <main id="page-practice" class="page">
     <div class="practice-container">
       <div class="practice-header">
-        <span class="question-counter">Question <span id="currentQuestion">1</span> of <span id="totalQuestions">5</span></span>
+        <span class="question-counter">Question <span id="currentQuestion">1</span> of <span
+            id="totalQuestions">5</span></span>
         <div class="progress-bar">
           <div class="progress-fill" id="progressFill" style="width: 20%"></div>
         </div>
@@ -157,7 +162,7 @@
         <button class="btn btn-primary" id="nextBtn" onclick="nextQuestion()">
           Next Question →
         </button>
-        <button class="btn btn-success" id="submitBtn" onclick="showPage('feedback')" style="display: none;">
+        <button class="btn btn-success" id="submitBtn" onclick="analyzeResponse()" style="display: none;">
           Get AI Feedback ✨
         </button>
       </div>
@@ -176,8 +181,8 @@
         <div class="confidence-card">
           <div class="confidence-ring">
             <svg viewBox="0 0 100 100">
-              <circle class="confidence-bg" cx="50" cy="50" r="45"/>
-              <circle class="confidence-fill" cx="50" cy="50" r="45" stroke-dasharray="283" stroke-dashoffset="57"/>
+              <circle class="confidence-bg" cx="50" cy="50" r="45" />
+              <circle class="confidence-fill" cx="50" cy="50" r="45" stroke-dasharray="283" stroke-dashoffset="57" />
             </svg>
             <div class="confidence-value">
               <span class="score">78</span>
@@ -262,14 +267,16 @@
           <div class="contribute-icon">🐛</div>
           <h3>Report Bugs</h3>
           <p>Found something broken? Open an issue on GitHub and help us improve.</p>
-          <a href="https://github.com/RelaxItsAryan/Interview-Prep-Buddy.git" target="_blank" class="btn btn-outline">Report Issue</a>
+          <a href="https://github.com/RelaxItsAryan/Interview-Prep-Buddy.git" target="_blank"
+            class="btn btn-outline">Report Issue</a>
         </div>
 
         <div class="contribute-card">
           <div class="contribute-icon">💡</div>
           <h3>Suggest Features</h3>
           <p>Have an idea? We'd love to hear it! Share your suggestions with us.</p>
-          <a href="https://github.com/RelaxItsAryan/Interview-Prep-Buddy.git" target="_blank" class="btn btn-outline">Suggest Feature</a>
+          <a href="https://github.com/RelaxItsAryan/Interview-Prep-Buddy.git" target="_blank"
+            class="btn btn-outline">Suggest Feature</a>
         </div>
 
         <div class="contribute-card">
@@ -338,6 +345,8 @@
   <!-- Toast Container -->
   <div class="toast-container" id="toastContainer"></div>
 
+  <script src="env.js"></script>
   <script src="script.js"></script>
 </body>
+
 </html>

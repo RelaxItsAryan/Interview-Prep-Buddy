@@ -262,6 +262,125 @@ function copyTranscript() {
   showToast('Copied!', 'success');
 }
 
+
+
+
+async function analyzeResponse() {
+  const currentQ = questions[currentQuestionIndex];
+  const userTranscript = transcripts[currentQ.id];
+
+  if (!userTranscript || userTranscript.trim().length < 5) {
+    showToast('Please record a longer answer first!', 'error');
+    return;
+  }
+
+  const apiKey = window.ENV?.GEMINI_API_KEY;
+  if (!apiKey) {
+    showToast('API Key not found in env.js', 'error');
+    return;
+  }
+
+  // Show loading state
+  const submitBtn = document.getElementById('submitBtn');
+  const originalText = submitBtn.innerHTML;
+  submitBtn.disabled = true;
+  submitBtn.innerHTML = 'Analyzing... ⏳';
+
+  const prompt = `
+    You are an expert technical interviewer. I will give you a mock interview question and my answer. 
+    Analyze my answer and return a JSON object with the following structure (do NOT return markdown, just raw JSON):
+    {
+      "confidenceScore": number (0-100),
+      "confidenceMessage": "short encouraging message",
+      "clarityScore": number (0-100),
+      "clarityFeedback": "short feedback on clarity",
+      "relevanceScore": number (0-100),
+      "relevanceFeedback": "short feedback on relevance",
+      "structureScore": number (0-100),
+      "structureFeedback": "short feedback on structure",
+      "tips": ["tip 1", "tip 2", "tip 3"]
+    }
+
+    Question: "${currentQ.question}"
+    Category: "${currentQ.category}"
+    My Answer: "${userTranscript}"
+  `;
+
+  try {
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }]
+      })
+    });
+
+    const data = await response.json();
+
+    if (data.error) {
+      throw new Error(data.error.message);
+    }
+
+    const aiText = data.candidates[0].content.parts[0].text;
+    // Clean up potential markdown code blocks if Gemini sends them
+    const cleanJson = aiText.replace(/```json/g, '').replace(/```/g, '').trim();
+    const feedbackData = JSON.parse(cleanJson);
+
+    populateFeedbackUI(feedbackData);
+    showPage('feedback');
+    showToast('Analysis Complete! 🚀', 'success');
+
+  } catch (error) {
+    console.error('AI Error:', error);
+    showToast('Failed to get AI feedback. Try again.', 'error');
+  } finally {
+    submitBtn.disabled = false;
+    submitBtn.innerHTML = originalText;
+  }
+}
+
+function populateFeedbackUI(data) {
+  // Confidence
+  document.querySelector('.confidence-value .score').textContent = data.confidenceScore;
+  document.querySelector('.confidence-message').textContent = data.confidenceMessage;
+
+  // Set ring stroke offset (100 - score) is not quite right for 283 circumference
+  // Circumference = 2 * PI * 45 ≈ 283
+  // Offset = 283 - (283 * score / 100)
+  const circle = document.querySelector('.confidence-fill');
+  const offset = 283 - (283 * data.confidenceScore / 100);
+  circle.style.strokeDashoffset = offset;
+
+  // Clarity
+  document.querySelector('.feedback-icon.clarity').nextElementSibling.nextElementSibling.querySelector('.score-fill').style.width = `${data.clarityScore}%`;
+  document.querySelector('.feedback-icon.clarity').parentNode.querySelector('.score-value').textContent = `${data.clarityScore}%`;
+  document.querySelector('.feedback-icon.clarity').parentNode.querySelector('p').textContent = data.clarityFeedback;
+
+  // Relevance
+  document.querySelector('.feedback-icon.relevance').nextElementSibling.nextElementSibling.querySelector('.score-fill').style.width = `${data.relevanceScore}%`;
+  document.querySelector('.feedback-icon.relevance').parentNode.querySelector('.score-value').textContent = `${data.relevanceScore}%`;
+  document.querySelector('.feedback-icon.relevance').parentNode.querySelector('p').textContent = data.relevanceFeedback;
+
+  // Structure
+  document.querySelector('.feedback-icon.structure').nextElementSibling.nextElementSibling.querySelector('.score-fill').style.width = `${data.structureScore}%`;
+  document.querySelector('.feedback-icon.structure').parentNode.querySelector('.score-value').textContent = `${data.structureScore}%`;
+  document.querySelector('.feedback-icon.structure').parentNode.querySelector('p').textContent = data.structureFeedback;
+
+  // Confidence (Grid Item) - Reusing main Confidence Score if needed or calculating separate
+  document.querySelector('.feedback-icon.confidence').nextElementSibling.nextElementSibling.querySelector('.score-fill').style.width = `${data.confidenceScore}%`;
+  document.querySelector('.feedback-icon.confidence').parentNode.querySelector('.score-value').textContent = `${data.confidenceScore}%`;
+  document.querySelector('.feedback-icon.confidence').parentNode.querySelector('p').textContent = "Based on analysis of your tone and content.";
+
+  // Tips
+  const tipsList = document.querySelector('.tips-list');
+  tipsList.innerHTML = '';
+  data.tips.forEach(tip => {
+    const li = document.createElement('li');
+    li.textContent = tip;
+    tipsList.appendChild(li);
+  });
+}
+
 // ==========================================
 // Toast
 // ==========================================
