@@ -1,22 +1,29 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Interview Prep Buddy - AI-Powered Interview Practice</title>
-  <meta name="description"
-    content="Practice interview questions, record your answers, and get instant AI feedback to boost your confidence and land your dream job.">
+  <title>Interview Prep Buddy</title>
+  <link rel="icon" type="image/x-icon" href="favicon.ico">
   <link rel="stylesheet" href="styles.css">
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
 
 <body>
-  <!-- Navigation -->
+  <div id="canvas-container"></div>
+  <div class="overlay-vignette"></div>
+
   <nav class="navbar">
     <div class="nav-container">
       <a href="#" class="nav-logo" onclick="showPage('home')">
-        <img src="favicon.ico" alt="Interview Prep Buddy Logo" class="logo-image">
+        <div class="logo-box">
+            <img src="favicon.ico" alt="IPB" class="logo-img" onerror="this.style.display='none'; this.nextElementSibling.style.display='block'">
+            <span style="display:none; font-size:1.2rem;">🤖</span>
+        </div>
         <span class="logo-text">Interview Prep Buddy</span>
       </a>
 
@@ -25,16 +32,20 @@
         <a href="#" class="nav-link" data-page="practice" onclick="showPage('practice')">Practice</a>
         <a href="#" class="nav-link" data-page="feedback" onclick="showPage('feedback')">Feedback</a>
         <a href="#" class="nav-link" data-page="contribute" onclick="showPage('contribute')">Contribute</a>
-
       </div>
+
       <div class="nav-actions">
-        <button class="theme-toggle" onclick="toggleTheme()" title="Toggle theme">🌙</button>
-        <a href="https://github.com/RelaxItsAryan/Interview-Prep-Buddy.git" target="_blank" class="btn btn-outline">
-          <span>⭐</span> Star on GitHub
+        <button class="theme-toggle" onclick="toggleTheme()" title="Switch Theme">
+          <span class="theme-icon">☀</span>
+        </button>
+        <a href="https://github.com/RelaxItsAryan/Interview-Prep-Buddy" target="_blank" class="btn btn-sm btn-github">
+          ★ Star on GitHub
         </a>
       </div>
+      
       <button class="mobile-menu-btn" onclick="toggleMobileMenu()">☰</button>
     </div>
+
     <div class="mobile-menu" id="mobileMenu">
       <a href="#" class="mobile-link" onclick="showPage('home')">Home</a>
       <a href="#" class="mobile-link" onclick="showPage('practice')">Practice</a>
@@ -43,310 +54,237 @@
     </div>
   </nav>
 
-  <!-- Home Page -->
   <main id="page-home" class="page active">
-    <section class="hero">
-      <div class="hero-content">
-        <span class="hero-badge">🚀 Open Source Project</span>
-        <h1 class="hero-title">
-          Ace Your Next Interview with
-          <span class="gradient-text">AI-Powered Practice</span>
-        </h1>
-        <p class="hero-description">
-          Practice interview questions, record your answers, and get instant AI feedback
-          to boost your confidence and land your dream job. Open source and free forever.
-        </p>
-        <div class="hero-actions">
-          <button class="btn btn-primary btn-lg" onclick="showPage('practice')">
-            Start Practicing →
-          </button>
-          <a href="https://github.com/RelaxItsAryan/Interview-Prep-Buddy.git" target="_blank"
-            class="btn btn-outline btn-lg">
-            View on GitHub
-          </a>
+    <section class="hero-section">
+      <div class="hero-badge">🚀 AI-Powered Beta 2.0</div>
+      <h1 class="hero-title">
+        Ace Your Next Interview with <br>
+        <span class="gradient-text">Intelligent Practice</span>
+      </h1>
+      <p class="hero-subtext">
+        Practice interview questions, record your answers, and get instant AI
+        feedback to boost your confidence. Open source and free forever.
+      </p>
+      
+      <div class="hero-actions">
+        <button class="btn btn-primary btn-lg" onclick="showPage('practice')">Start Practicing →</button>
+        <a href="https://github.com/RelaxItsAryan/Interview-Prep-Buddy" target="_blank" class="btn btn-outline btn-lg">View on GitHub</a>
+      </div>
+
+      <div class="hero-stats">
+        <div class="stat-item">
+          <span class="stat-num">50+</span>
+          <span class="stat-lbl">Questions</span>
         </div>
-        <div class="hero-stats">
-          <div class="stat">
-            <span class="stat-value">50+</span>
-            <span class="stat-label">Practice Questions</span>
-          </div>
-          <div class="stat">
-            <span class="stat-value">AI</span>
-            <span class="stat-label">Powered Feedback</span>
-          </div>
-          <div class="stat">
-            <span class="stat-value">100%</span>
-            <span class="stat-label">Free & Open Source</span>
-          </div>
+        <div class="stat-item">
+          <span class="stat-num">AI</span>
+          <span class="stat-lbl">Analysis</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-num">100%</span>
+          <span class="stat-lbl">Free</span>
         </div>
       </div>
     </section>
 
-    <section class="features">
+    <section class="features-section">
       <h2 class="section-title">How It Works</h2>
-      <div class="features-grid">
+      <div class="grid-4">
         <div class="feature-card">
-          <div class="feature-icon">🎤</div>
-          <h3>Record Your Answer</h3>
+          <div class="icon">🎤</div>
+          <h3>Record</h3>
           <p>Practice answering interview questions by recording your voice responses.</p>
         </div>
         <div class="feature-card">
-          <div class="feature-icon">📝</div>
-          <h3>Speech to Text</h3>
+          <div class="icon">📝</div>
+          <h3>Transcribe</h3>
           <p>Your answer is automatically transcribed using advanced speech recognition.</p>
         </div>
         <div class="feature-card">
-          <div class="feature-icon">🤖</div>
-          <h3>AI Analysis</h3>
-          <p>Get detailed feedback on clarity, relevance, and structure of your response.</p>
+          <div class="icon">⚡</div>
+          <h3>Analyze</h3>
+          <p>Get detailed feedback on clarity, relevance, and structure instantly.</p>
         </div>
         <div class="feature-card">
-          <div class="feature-icon">📊</div>
-          <h3>Confidence Score</h3>
-          <p>Track your progress with an overall confidence score and improvement tips.</p>
+          <div class="icon">📈</div>
+          <h3>Improve</h3>
+          <p>Track your progress with an overall confidence score and tips.</p>
         </div>
       </div>
     </section>
   </main>
 
-  <!-- Practice Page -->
   <main id="page-practice" class="page">
-    <div class="practice-container">
+    <div class="container-narrow">
       <div class="practice-header">
-        <span class="question-counter">Question <span id="currentQuestion">1</span> of <span
-            id="totalQuestions">5</span></span>
-        <div class="progress-bar">
-          <div class="progress-fill" id="progressFill" style="width: 20%"></div>
+        <div class="header-top">
+          <span class="category-pill" id="questionCategory">Behavioral</span>
+          <span class="step-count">Question <span id="currentQuestion">1</span> of 5</span>
+        </div>
+        <div class="progress-container">
+          <div class="progress-bar" id="progressFill" style="width: 20%"></div>
         </div>
       </div>
 
       <div class="question-card">
-        <span class="question-category" id="questionCategory">Behavioral</span>
-        <h2 class="question-text" id="questionText">Tell me about yourself and your background.</h2>
-        <p class="question-tip" id="questionTip">
-          💡 Tip: Focus on relevant experience and keep it under 2 minutes.
-        </p>
-      </div>
-
-      <div class="recorder-section">
-        <div class="recorder-card">
-          <div class="recorder-status" id="recorderStatus">
-            <span class="status-icon">🎤</span>
-            <span class="status-text">Ready to record</span>
-          </div>
-          <div class="timer" id="timer">00:00</div>
-          <div class="recorder-controls">
-            <button class="btn btn-record" id="recordBtn" onclick="toggleRecording()">
-              <span id="recordIcon">⏺</span>
-              <span id="recordText">Start Recording</span>
-            </button>
-          </div>
-          <p class="recorder-hint">Click to start recording your answer</p>
+        <h2 id="questionText">Tell me about yourself.</h2>
+        <div class="tip-box">
+          <span class="tip-icon">💡</span>
+          <span id="questionTip">Tip: Keep it relevant to the role.</span>
         </div>
       </div>
 
-      <div class="transcript-section" id="transcriptSection" style="display: none;">
-        <div class="transcript-card">
-          <div class="transcript-header">
-            <h3>📄 Your Transcript</h3>
-            <button class="btn btn-sm btn-outline" onclick="copyTranscript()">Copy</button>
+      <div class="recorder-card">
+        <div class="neural-core-wrapper">
+          <button class="neural-core" id="recordBtn" onclick="toggleRecording()">
+            <div class="core-inner"></div>
+            <div class="core-ring"></div>
+            <div class="core-particles"></div>
+          </button>
+        </div>
+        
+        <div class="timer" id="timer">00:00</div>
+        <p class="status-msg" id="recordStatus">Tap Core to Record</p>
+      </div>
+
+      <div class="mac-window">
+        <div class="mac-header">
+          <div class="dots">
+            <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
           </div>
-          <p class="transcript-text" id="transcriptText"></p>
+          <div class="mac-title">transcript — zsh</div>
+          <button class="copy-btn" onclick="copyTranscript()">Copy</button>
+        </div>
+        <div class="mac-body">
+          <textarea id="transcriptText" placeholder="Your transcript will appear here..." readonly></textarea>
         </div>
       </div>
 
-      <div class="practice-actions">
-        <button class="btn btn-outline" id="prevBtn" onclick="prevQuestion()" disabled>
-          ← Previous
-        </button>
-        <button class="btn btn-primary" id="nextBtn" onclick="nextQuestion()">
-          Next Question →
-        </button>
-        <button class="btn btn-success" id="submitBtn" onclick="analyzeResponse()" style="display: none;">
-          Get AI Feedback ✨
-        </button>
+      <div class="nav-actions-row">
+        <button class="btn btn-outline" id="prevBtn" onclick="prevQuestion()" disabled>← Previous</button>
+        <button class="btn btn-primary" id="nextBtn" onclick="nextQuestion()">Next Question →</button>
+        <button class="btn btn-success" id="finishBtn" onclick="finishSession()" style="display: none;">Finish & Analyze ✨</button>
       </div>
     </div>
   </main>
 
-  <!-- Feedback Page -->
   <main id="page-feedback" class="page">
-    <div class="feedback-container">
+    <div class="container-narrow">
       <div class="feedback-header">
-        <h1>Your Interview Feedback</h1>
+        <h1>Analysis Report</h1>
         <p>AI-powered analysis of your practice session</p>
       </div>
 
-      <div class="confidence-section">
-        <div class="confidence-card">
-          <div class="confidence-ring">
-            <svg viewBox="0 0 100 100">
-              <circle class="confidence-bg" cx="50" cy="50" r="45" />
-              <circle class="confidence-fill" cx="50" cy="50" r="45" stroke-dasharray="283" stroke-dashoffset="57" />
-            </svg>
-            <div class="confidence-value">
-              <span class="score">78</span>
-              <span class="label">%</span>
-            </div>
+      <div class="score-card">
+        <div class="chart-container">
+          <svg viewBox="0 0 36 36" class="circular-chart">
+            <path class="circle-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+            <path class="circle" stroke-dasharray="0, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+          </svg>
+          <div class="percentage">
+            <span id="overallScore">0</span><span class="percent-sym">%</span>
           </div>
-          <h2>Overall Confidence Score</h2>
-          <p class="confidence-message">Great job! You're showing strong interview skills.</p>
+        </div>
+        <h3>Overall Confidence</h3>
+        <p id="feedbackSummary">Processing data...</p>
+      </div>
+
+      <div class="metrics-grid">
+        <div class="metric-card">
+          <div class="icon-box">💬</div>
+          <h4>Clarity</h4>
+          <div class="bar-bg"><div class="bar-fill" id="barClarity" style="width: 0%"></div></div>
+          <span class="metric-val" id="valClarity">0%</span>
+        </div>
+        <div class="metric-card">
+          <div class="icon-box">🎯</div>
+          <h4>Relevance</h4>
+          <div class="bar-bg"><div class="bar-fill" id="barRelevance" style="width: 0%"></div></div>
+          <span class="metric-val" id="valRelevance">0%</span>
+        </div>
+        <div class="metric-card">
+          <div class="icon-box">📋</div>
+          <h4>Structure</h4>
+          <div class="bar-bg"><div class="bar-fill" id="barStructure" style="width: 0%"></div></div>
+          <span class="metric-val" id="valStructure">0%</span>
         </div>
       </div>
 
-      <div class="feedback-grid">
-        <div class="feedback-card">
-          <div class="feedback-icon clarity">💬</div>
-          <h3>Clarity</h3>
-          <div class="score-bar">
-            <div class="score-fill" style="width: 82%"></div>
-          </div>
-          <span class="score-value">82%</span>
-          <p>Your answers are clear and easy to understand. Consider using more specific examples.</p>
-        </div>
-
-        <div class="feedback-card">
-          <div class="feedback-icon relevance">🎯</div>
-          <h3>Relevance</h3>
-          <div class="score-bar">
-            <div class="score-fill" style="width: 75%"></div>
-          </div>
-          <span class="score-value">75%</span>
-          <p>Good focus on the question. Try to tie your answers more directly to the role requirements.</p>
-        </div>
-
-        <div class="feedback-card">
-          <div class="feedback-icon structure">📋</div>
-          <h3>Structure</h3>
-          <div class="score-bar">
-            <div class="score-fill" style="width: 70%"></div>
-          </div>
-          <span class="score-value">70%</span>
-          <p>Consider using the STAR method (Situation, Task, Action, Result) for behavioral questions.</p>
-        </div>
-
-        <div class="feedback-card">
-          <div class="feedback-icon confidence">⚡</div>
-          <h3>Confidence</h3>
-          <div class="score-bar">
-            <div class="score-fill" style="width: 85%"></div>
-          </div>
-          <span class="score-value">85%</span>
-          <p>You sound confident! Maintaining good pace and avoiding filler words will help even more.</p>
-        </div>
+      <div class="tips-card">
+        <h3>💡 Improvements</h3>
+        <ul id="tipsList" class="tips-list"></ul>
       </div>
 
-      <div class="improvement-tips">
-        <h2>💡 Tips for Improvement</h2>
-        <ul class="tips-list">
-          <li>Practice the STAR method for behavioral questions</li>
-          <li>Prepare 3-5 specific examples from your experience</li>
-          <li>Record yourself and listen back to identify filler words</li>
-          <li>Research the company and role before interviews</li>
-        </ul>
-      </div>
-
-      <div class="feedback-actions">
-        <button class="btn btn-primary btn-lg" onclick="showPage('practice')">
-          Practice Again
-        </button>
+      <div class="center-btn">
+        <button class="btn btn-primary btn-lg" onclick="location.reload()">New Session</button>
       </div>
     </div>
   </main>
 
-  <!-- Contribute Page -->
   <main id="page-contribute" class="page">
-    <div class="contribute-container">
-      <div class="contribute-header">
-        <h1>Contribute to Interview Prep Buddy</h1>
-        <p>Join our open-source community and help students prepare for interviews</p>
+    <div class="container-narrow">
+      <div class="hero-section small-hero">
+        <h1>Contribute</h1>
+        <p class="hero-subtext">Join our open-source community</p>
       </div>
 
-      <div class="contribute-grid">
-        <div class="contribute-card">
-          <div class="contribute-icon">🐛</div>
+      <div class="tech-stack-section">
+        <h3>🛠 Tech Stack</h3>
+        <div class="stack-grid">
+          <div class="stack-item"><span>HTML5</span></div>
+          <div class="stack-item"><span>CSS3</span></div>
+          <div class="stack-item"><span>JavaScript</span></div>
+          <div class="stack-item"><span>Three.js</span></div>
+          <div class="stack-item"><span>Web Speech API</span></div>
+          <div class="stack-item"><span>FastAPI</span></div>
+        </div>
+      </div>
+
+      <div class="grid-4 contribute-grid">
+        <a href="https://github.com/RelaxItsAryan/Interview-Prep-Buddy/issues" target="_blank" class="feature-card link-hover">
+          <div class="icon">🐛</div>
           <h3>Report Bugs</h3>
-          <p>Found something broken? Open an issue on GitHub and help us improve.</p>
-          <a href="https://github.com/RelaxItsAryan/Interview-Prep-Buddy.git" target="_blank"
-            class="btn btn-outline">Report Issue</a>
-        </div>
-
-        <div class="contribute-card">
-          <div class="contribute-icon">💡</div>
-          <h3>Suggest Features</h3>
-          <p>Have an idea? We'd love to hear it! Share your suggestions with us.</p>
-          <a href="https://github.com/RelaxItsAryan/Interview-Prep-Buddy.git" target="_blank"
-            class="btn btn-outline">Suggest Feature</a>
-        </div>
-
-        <div class="contribute-card">
-          <div class="contribute-icon">📝</div>
-          <h3>Add Questions</h3>
-          <p>Contribute interview questions to help expand our question bank.</p>
-          <a href="https://github.com" target="_blank" class="btn btn-outline">Add Questions</a>
-        </div>
-
-        <div class="contribute-card">
-          <div class="contribute-icon">🔧</div>
-          <h3>Code Contributions</h3>
-          <p>Check out our TODO markers and help build new features.</p>
-          <a href="https://github.com" target="_blank" class="btn btn-outline">View Code</a>
-        </div>
+          <p>Found a bug? Open an issue.</p>
+        </a>
+        <a href="https://github.com/RelaxItsAryan/Interview-Prep-Buddy/discussions" target="_blank" class="feature-card link-hover">
+          <div class="icon">💡</div>
+          <h3>Features</h3>
+          <p>Suggest new ideas.</p>
+        </a>
+        <a href="#" class="feature-card link-hover">
+          <div class="icon">📝</div>
+          <h3>Add Q's</h3>
+          <p>Expand the question bank.</p>
+        </a>
+        <a href="https://github.com/RelaxItsAryan/Interview-Prep-Buddy" target="_blank" class="feature-card link-hover">
+          <div class="icon">🔧</div>
+          <h3>Code</h3>
+          <p>Fork the repo and build.</p>
+        </a>
       </div>
 
       <div class="getting-started">
-        <h2>🚀 Getting Started</h2>
-        <div class="steps">
-          <div class="step">
-            <span class="step-number">1</span>
-            <div class="step-content">
-              <h4>Fork the Repository</h4>
-              <p>Create your own copy of the project on GitHub</p>
+        <h2>⚡ Getting Started</h2>
+        <div class="mac-window large">
+          <div class="mac-header">
+            <div class="dots">
+              <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
             </div>
+            <div class="mac-title">setup_guide.sh</div>
           </div>
-          <div class="step">
-            <span class="step-number">2</span>
-            <div class="step-content">
-              <h4>Clone Locally</h4>
-              <p>Download the code to your machine</p>
-            </div>
-          </div>
-          <div class="step">
-            <span class="step-number">3</span>
-            <div class="step-content">
-              <h4>Make Changes</h4>
-              <p>Look for TODO comments and start coding</p>
-            </div>
-          </div>
-          <div class="step">
-            <span class="step-number">4</span>
-            <div class="step-content">
-              <h4>Submit PR</h4>
-              <p>Open a pull request and get it reviewed</p>
-            </div>
+          <div class="mac-body terminal-body">
+            <div class="cmd-line"><span class="prompt">➜ ~</span> git clone https://github.com/RelaxItsAryan/Interview-Prep-Buddy.git</div>
+            <div class="cmd-line"><span class="prompt">➜ ~</span> cd Interview-Prep-Buddy</div>
+            <div class="cmd-line"><span class="prompt">➜ project</span> # Open index.html in your browser</div>
+            <div class="cmd-line"><span class="prompt">➜ project</span> <span class="cursor">_</span></div>
           </div>
         </div>
       </div>
 
-      <div class="tech-stack">
-        <h2>🛠 Tech Stack</h2>
-        <div class="tech-badges">
-          <span class="tech-badge">HTML5</span>
-          <span class="tech-badge">CSS3</span>
-          <span class="tech-badge">JavaScript</span>
-          <span class="tech-badge">Web Speech API</span>
-          <span class="tech-badge">FastAPI (Backend)</span>
-          <span class="tech-badge">NLP</span>
-        </div>
-      </div>
     </div>
   </main>
 
-  <!-- Toast Container -->
   <div class="toast-container" id="toastContainer"></div>
-
-  <script src="env.js"></script>
   <script src="script.js"></script>
 </body>
-
 </html>

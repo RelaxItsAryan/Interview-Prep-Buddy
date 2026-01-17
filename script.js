@@ -1,393 +1,289 @@
 /* ==========================================
-   Interview Prep Buddy - JavaScript
+   INTERVIEW PREP BUDDY - ULTIMATE LOGIC
    ========================================== */
 
-// Mock Data
-const questions = [
-  {
-    id: 1,
-    question: "Tell me about yourself and your background.",
-    category: "Behavioral",
-    tip: "Focus on relevant experience and keep it under 2 minutes."
-  },
-  {
-    id: 2,
-    question: "Why do you want to work at our company?",
-    category: "Motivation",
-    tip: "Research the company beforehand and mention specific aspects that attract you."
-  },
-  {
-    id: 3,
-    question: "Describe a challenging project you worked on and how you overcame obstacles.",
-    category: "Behavioral",
-    tip: "Use the STAR method: Situation, Task, Action, Result."
-  },
-  {
-    id: 4,
-    question: "What are your greatest strengths and weaknesses?",
-    category: "Self-Assessment",
-    tip: "Be honest but strategic. For weaknesses, mention how you're improving."
-  },
-  {
-    id: 5,
-    question: "Where do you see yourself in 5 years?",
-    category: "Career Goals",
-    tip: "Show ambition while aligning with the role and company growth."
+// --- 3D PARTICLE ENGINE ---
+const init3D = () => {
+  const container = document.getElementById('canvas-container');
+  if(!container) return;
+
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+  const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+  
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  container.appendChild(renderer.domElement);
+
+  // Particle System
+  const particlesGeometry = new THREE.BufferGeometry();
+  const particlesCount = 700;
+  const posArray = new Float32Array(particlesCount * 3);
+
+  for(let i = 0; i < particlesCount * 3; i++) {
+    posArray[i] = (Math.random() - 0.5) * 50; // Spread
   }
-];
 
-// ==========================================
-// State
-// ==========================================
-let currentQuestionIndex = 0;
-let isRecording = false;
-let mediaRecorder = null;
-let audioChunks = [];
-let timerInterval = null;
-let seconds = 0;
-let recognition = null;
+  particlesGeometry.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
 
-// 🔥 FIXED STATE
-let transcripts = {};     // { questionId: "answer" }
-let transcript = "";      // current question transcript only
-
-// ==========================================
-// Initialize
-// ==========================================
-document.addEventListener('DOMContentLoaded', () => {
-  initTheme();
-  updateQuestion();
-  initSpeechRecognition();
-});
-
-// ==========================================
-// Theme Toggle
-// ==========================================
-function initTheme() {
-  const savedTheme = localStorage.getItem('theme') || 'dark';
-  document.documentElement.setAttribute('data-theme', savedTheme);
-  updateThemeIcon(savedTheme);
-}
-
-function toggleTheme() {
-  const currentTheme = document.documentElement.getAttribute('data-theme');
-  const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-  document.documentElement.setAttribute('data-theme', newTheme);
-  localStorage.setItem('theme', newTheme);
-  updateThemeIcon(newTheme);
-}
-
-function updateThemeIcon(theme) {
-  document.querySelector('.theme-toggle').textContent =
-    theme === 'dark' ? '☀️' : '🌙';
-}
-
-// ==========================================
-// Page Navigation
-// ==========================================
-function showPage(pageName) {
-  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  document.getElementById(`page-${pageName}`)?.classList.add('active');
-
-  document.querySelectorAll('.nav-link').forEach(link => {
-    link.classList.toggle('active', link.dataset.page === pageName);
+  // Material (Dynamic Color)
+  const particlesMaterial = new THREE.PointsMaterial({
+    size: 0.15,
+    color: 0x06b6d4, // Default Cyan
+    transparent: true,
+    opacity: 0.8,
   });
 
-  document.getElementById('mobileMenu')?.classList.remove('active');
+  const particlesMesh = new THREE.Points(particlesGeometry, particlesMaterial);
+  scene.add(particlesMesh);
+
+  // Add floating shapes in corners
+  const shapeGeo = new THREE.IcosahedronGeometry(2, 0);
+  const shapeMat = new THREE.MeshBasicMaterial({ color: 0x3b82f6, wireframe: true, transparent: true, opacity: 0.1 });
+  
+  const shape1 = new THREE.Mesh(shapeGeo, shapeMat);
+  shape1.position.set(15, 10, -10);
+  scene.add(shape1);
+
+  const shape2 = new THREE.Mesh(shapeGeo, shapeMat);
+  shape2.position.set(-15, -10, -10);
+  scene.add(shape2);
+
+  camera.position.z = 20;
+
+  function animate() {
+    requestAnimationFrame(animate);
+    
+    // Rotate entire system
+    particlesMesh.rotation.y += 0.0005;
+    particlesMesh.rotation.x += 0.0002;
+
+    shape1.rotation.x += 0.002;
+    shape1.rotation.y += 0.002;
+    shape2.rotation.x -= 0.002;
+    shape2.rotation.y -= 0.002;
+
+    // Theme Color Check
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    
+    // Dark Mode: Cyan Particles. Light Mode: Black Particles.
+    particlesMaterial.color.setHex(isDark ? 0x06b6d4 : 0x000000);
+    shapeMat.color.setHex(isDark ? 0x3b82f6 : 0x000000);
+    shapeMat.opacity = isDark ? 0.1 : 0.05;
+
+    renderer.render(scene, camera);
+  }
+  animate();
+
+  window.addEventListener('resize', () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+  });
+};
+
+// --- APP LOGIC (Batch) ---
+const questions = [
+  { id: 1, question: "Tell me about yourself.", category: "Behavioral", tip: "Keep it under 2 minutes. Start with your current role." },
+  { id: 2, question: "Why do you want to work here?", category: "Motivation", tip: "Connect your skills to the company mission." },
+  { id: 3, question: "Describe a challenge you faced.", category: "Behavioral", tip: "Use STAR: Situation, Task, Action, Result." },
+  { id: 4, question: "What are your greatest strengths?", category: "Self-Awareness", tip: "Choose strengths relevant to the job." },
+  { id: 5, question: "Where do you see yourself in 5 years?", category: "Future Goals", tip: "Show ambition that aligns with the company." }
+];
+
+let currentIndex = 0;
+let answers = {};
+let isRecording = false;
+let recognition = null;
+let currentTranscript = "";
+let timerInt;
+let seconds = 0;
+
+document.addEventListener('DOMContentLoaded', () => {
+  init3D();
+  initTheme();
+  updateUI();
+  initSpeech();
+  
+  window.toggleMobileMenu = () => {
+    document.getElementById('mobileMenu').classList.toggle('active');
+  };
+});
+
+/* NAVIGATION */
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById(`page-${id}`).classList.add('active');
+  
+  // Highlight active link
+  document.querySelectorAll('.nav-link').forEach(l => {
+    l.classList.remove('active');
+    if(l.dataset.page === id) l.classList.add('active');
+  });
+
+  document.getElementById('mobileMenu').classList.remove('active');
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-// ==========================================
-// Question Navigation
-// ==========================================
-function updateQuestion() {
-  const question = questions[currentQuestionIndex];
-
-  document.getElementById('currentQuestion').textContent = currentQuestionIndex + 1;
-  document.getElementById('totalQuestions').textContent = questions.length;
-  document.getElementById('questionCategory').textContent = question.category;
-  document.getElementById('questionText').textContent = question.question;
-  document.getElementById('questionTip').innerHTML = `💡 Tip: ${question.tip}`;
-
-  const progress = ((currentQuestionIndex + 1) / questions.length) * 100;
-  document.getElementById('progressFill').style.width = `${progress}%`;
-
-  document.getElementById('prevBtn').disabled = currentQuestionIndex === 0;
-
-  const isLast = currentQuestionIndex === questions.length - 1;
-  document.getElementById('nextBtn').style.display = isLast ? 'none' : 'inline-flex';
-  document.getElementById('submitBtn').style.display = isLast ? 'inline-flex' : 'none';
-
-  // 🔥 LOAD SAVED TRANSCRIPT
-  const qId = question.id;
-  transcript = transcripts[qId] || "";
-  updateTranscript();
-
-  document.getElementById('transcriptSection').style.display =
-    transcript ? 'block' : 'none';
-
-  resetRecorderUI();
+function toggleTheme() {
+  const root = document.documentElement;
+  const curr = root.getAttribute('data-theme');
+  root.setAttribute('data-theme', curr === 'dark' ? 'light' : 'dark');
+}
+function initTheme() {
+  const saved = localStorage.getItem('theme') || 'dark';
+  document.documentElement.setAttribute('data-theme', saved);
 }
 
-function nextQuestion() {
-  if (currentQuestionIndex < questions.length - 1) {
-    currentQuestionIndex++;
-    updateQuestion();
+/* PRACTICE LOGIC */
+function updateUI() {
+  const q = questions[currentIndex];
+  document.getElementById('currentQuestion').textContent = currentIndex + 1;
+  document.getElementById('questionCategory').textContent = q.category;
+  document.getElementById('questionText').textContent = q.question;
+  document.getElementById('questionTip').textContent = `Tip: ${q.tip}`;
+  
+  const pct = ((currentIndex + 1) / questions.length) * 100;
+  document.getElementById('progressFill').style.width = `${pct}%`;
+
+  document.getElementById('prevBtn').disabled = currentIndex === 0;
+  
+  if (currentIndex === questions.length - 1) {
+    document.getElementById('nextBtn').style.display = 'none';
+    document.getElementById('finishBtn').style.display = 'block';
+  } else {
+    document.getElementById('nextBtn').style.display = 'block';
+    document.getElementById('finishBtn').style.display = 'none';
   }
+
+  currentTranscript = answers[q.id] || "";
+  document.getElementById('transcriptText').value = currentTranscript;
+  resetRec();
 }
 
-function prevQuestion() {
-  if (currentQuestionIndex > 0) {
-    currentQuestionIndex--;
-    updateQuestion();
+function nextQuestion() { saveAnswer(); currentIndex++; updateUI(); }
+function prevQuestion() { saveAnswer(); currentIndex--; updateUI(); }
+function saveAnswer() { answers[questions[currentIndex].id] = currentTranscript; }
+
+function finishSession() {
+  saveAnswer();
+  const count = Object.values(answers).filter(a => a.trim().length > 0).length;
+  if (count === 0) {
+    showToast('Please record at least one answer', 'error');
+    return;
   }
+  showToast('Analyzing session...', 'success');
+  setTimeout(() => { generateReport(); showPage('feedback'); }, 2000);
 }
 
-// ==========================================
-// Speech Recognition
-// ==========================================
-function initSpeechRecognition() {
-  if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
-    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-    recognition = new SR();
-    recognition.continuous = true;
-    recognition.interimResults = true;
-    recognition.lang = 'en-US';
+/* RECORDING */
+function toggleRecording() { isRecording ? stopRec() : startRec(); }
 
-    recognition.onresult = (event) => {
-      let finalText = '';
-
-      for (let i = event.resultIndex; i < event.results.length; i++) {
-        if (event.results[i].isFinal) {
-          finalText += event.results[i][0].transcript + ' ';
-        }
-      }
-
-      transcript += finalText;
-      updateTranscript();
-    };
-
-    recognition.onerror = () => stopRecording();
-  }
-}
-
-// ==========================================
-// Recording
-// ==========================================
-function toggleRecording() {
-  isRecording ? stopRecording() : startRecording();
-}
-
-async function startRecording() {
+async function startRec() {
   try {
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-
     isRecording = true;
-    transcript = transcripts[questions[currentQuestionIndex].id] || "";
-    seconds = 0;
+    currentTranscript = ""; 
+    document.getElementById('transcriptText').value = "";
+    document.getElementById('recordStatus').textContent = "Recording...";
+    document.querySelector('.neural-core').classList.add('recording');
+    
+    timerInt = setInterval(() => {
+      seconds++;
+      const m = String(Math.floor(seconds/60)).padStart(2,'0');
+      const s = String(seconds%60).padStart(2,'0');
+      document.getElementById('timer').textContent = `${m}:${s}`;
+    }, 1000);
 
-    updateRecordingUI(true);
-    timerInterval = setInterval(updateTimer, 1000);
+    if (recognition) recognition.start();
 
-    recognition?.start();
-
-    mediaRecorder = new MediaRecorder(stream);
-    audioChunks = [];
-    mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
-    mediaRecorder.start();
-
-  } catch {
+  } catch (err) {
     showToast('Microphone access denied', 'error');
   }
 }
 
-function stopRecording() {
-  if (!isRecording) return;
-
+function stopRec() {
   isRecording = false;
-  clearInterval(timerInterval);
-  recognition?.stop();
-
-  if (mediaRecorder?.state !== 'inactive') {
-    mediaRecorder.stop();
-    mediaRecorder.stream.getTracks().forEach(t => t.stop());
-  }
-
-  // 🔥 SAVE TRANSCRIPT
-  const qId = questions[currentQuestionIndex].id;
-  transcripts[qId] = transcript;
-
-  updateRecordingUI(false);
-
-  if (transcript.trim()) {
-    document.getElementById('transcriptSection').style.display = 'block';
-  }
-
-  showToast('Recording saved!', 'success');
+  clearInterval(timerInt);
+  if (recognition) recognition.stop();
+  
+  document.querySelector('.neural-core').classList.remove('recording');
+  document.getElementById('recordStatus').textContent = "Tap Core to Record";
+  
+  saveAnswer();
+  if (currentTranscript.length > 0) showToast('Answer saved', 'success');
 }
 
-// ==========================================
-// UI Helpers
-// ==========================================
-function updateRecordingUI(isOn) {
-  document.getElementById('recordIcon').textContent = isOn ? '⏹' : '⏺';
-  document.getElementById('recordText').textContent =
-    isOn ? 'Stop Recording' : 'Start Recording';
-  document.querySelector('.status-icon').textContent = isOn ? '🔴' : '🎤';
-  document.querySelector('.status-text').textContent =
-    isOn ? 'Recording...' : 'Ready to record';
-}
-
-function resetRecorderUI() {
-  clearInterval(timerInterval);
+function resetRec() {
+  clearInterval(timerInt);
   seconds = 0;
-  document.getElementById('timer').textContent = '00:00';
-  updateRecordingUI(false);
+  document.getElementById('timer').textContent = "00:00";
+  document.getElementById('recordStatus').textContent = "Tap Core to Record";
+  document.querySelector('.neural-core').classList.remove('recording');
 }
 
-function updateTimer() {
-  seconds++;
-  const m = String(Math.floor(seconds / 60)).padStart(2, '0');
-  const s = String(seconds % 60).padStart(2, '0');
-  document.getElementById('timer').textContent = `${m}:${s}`;
-}
-
-function updateTranscript() {
-  document.getElementById('transcriptText').textContent =
-    transcript || 'Your transcribed text will appear here...';
-}
-
-function copyTranscript() {
-  navigator.clipboard.writeText(transcript);
-  showToast('Copied!', 'success');
-}
-
-
-
-
-async function analyzeResponse() {
-  const currentQ = questions[currentQuestionIndex];
-  const userTranscript = transcripts[currentQ.id];
-
-  if (!userTranscript || userTranscript.trim().length < 5) {
-    showToast('Please record a longer answer first!', 'error');
-    return;
-  }
-
-  const apiKey = window.ENV?.GEMINI_API_KEY;
-  if (!apiKey) {
-    showToast('API Key not found in env.js', 'error');
-    return;
-  }
-
-  // Show loading state
-  const submitBtn = document.getElementById('submitBtn');
-  const originalText = submitBtn.innerHTML;
-  submitBtn.disabled = true;
-  submitBtn.innerHTML = 'Analyzing... ⏳';
-
-  const prompt = `
-    You are an expert technical interviewer. I will give you a mock interview question and my answer. 
-    Analyze my answer and return a JSON object with the following structure (do NOT return markdown, just raw JSON):
-    {
-      "confidenceScore": number (0-100),
-      "confidenceMessage": "short encouraging message",
-      "clarityScore": number (0-100),
-      "clarityFeedback": "short feedback on clarity",
-      "relevanceScore": number (0-100),
-      "relevanceFeedback": "short feedback on relevance",
-      "structureScore": number (0-100),
-      "structureFeedback": "short feedback on structure",
-      "tips": ["tip 1", "tip 2", "tip 3"]
-    }
-
-    Question: "${currentQ.question}"
-    Category: "${currentQ.category}"
-    My Answer: "${userTranscript}"
-  `;
-
-  try {
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }]
-      })
-    });
-
-    const data = await response.json();
-
-    if (data.error) {
-      throw new Error(data.error.message);
-    }
-
-    const aiText = data.candidates[0].content.parts[0].text;
-    // Clean up potential markdown code blocks if Gemini sends them
-    const cleanJson = aiText.replace(/```json/g, '').replace(/```/g, '').trim();
-    const feedbackData = JSON.parse(cleanJson);
-
-    populateFeedbackUI(feedbackData);
-    showPage('feedback');
-    showToast('Analysis Complete! 🚀', 'success');
-
-  } catch (error) {
-    console.error('AI Error:', error);
-    showToast('Failed to get AI feedback. Try again.', 'error');
-  } finally {
-    submitBtn.disabled = false;
-    submitBtn.innerHTML = originalText;
+/* SPEECH API */
+function initSpeech() {
+  if ('webkitSpeechRecognition' in window) {
+    recognition = new webkitSpeechRecognition();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    
+    recognition.onresult = (event) => {
+      let final = '';
+      let interim = '';
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        if (event.results[i].isFinal) final += event.results[i][0].transcript;
+        else interim += event.results[i][0].transcript;
+      }
+      if(final) currentTranscript += final + " ";
+      document.getElementById('transcriptText').value = currentTranscript + interim;
+    };
   }
 }
 
-function populateFeedbackUI(data) {
-  // Confidence
-  document.querySelector('.confidence-value .score').textContent = data.confidenceScore;
-  document.querySelector('.confidence-message').textContent = data.confidenceMessage;
+/* REPORT GENERATION */
+function generateReport() {
+  let totalWords = 0;
+  Object.values(answers).forEach(a => totalWords += a.split(' ').length);
+  
+  const score = Math.min(100, Math.max(40, totalWords / 3));
+  const scoreInt = Math.round(score);
+  
+  document.getElementById('overallScore').textContent = scoreInt;
+  document.querySelector('.circle').style.strokeDasharray = `${scoreInt}, 100`;
+  document.getElementById('feedbackSummary').textContent = scoreInt > 80 ? "Excellent! You are interview ready." : "Good start! Expand on your answers.";
+  
+  document.getElementById('barClarity').style.width = `${Math.min(100, scoreInt + 5)}%`;
+  document.getElementById('valClarity').textContent = `${Math.min(100, scoreInt + 5)}%`;
+  
+  document.getElementById('barRelevance').style.width = `${Math.min(100, scoreInt - 5)}%`;
+  document.getElementById('valRelevance').textContent = `${Math.min(100, scoreInt - 5)}%`;
+  
+  document.getElementById('barStructure').style.width = `${Math.min(100, scoreInt)}%`;
+  document.getElementById('valStructure').textContent = `${Math.min(100, scoreInt)}%`;
 
-  // Set ring stroke offset (100 - score) is not quite right for 283 circumference
-  // Circumference = 2 * PI * 45 ≈ 283
-  // Offset = 283 - (283 * score / 100)
-  const circle = document.querySelector('.confidence-fill');
-  const offset = 283 - (283 * data.confidenceScore / 100);
-  circle.style.strokeDashoffset = offset;
-
-  // Clarity
-  document.querySelector('.feedback-icon.clarity').nextElementSibling.nextElementSibling.querySelector('.score-fill').style.width = `${data.clarityScore}%`;
-  document.querySelector('.feedback-icon.clarity').parentNode.querySelector('.score-value').textContent = `${data.clarityScore}%`;
-  document.querySelector('.feedback-icon.clarity').parentNode.querySelector('p').textContent = data.clarityFeedback;
-
-  // Relevance
-  document.querySelector('.feedback-icon.relevance').nextElementSibling.nextElementSibling.querySelector('.score-fill').style.width = `${data.relevanceScore}%`;
-  document.querySelector('.feedback-icon.relevance').parentNode.querySelector('.score-value').textContent = `${data.relevanceScore}%`;
-  document.querySelector('.feedback-icon.relevance').parentNode.querySelector('p').textContent = data.relevanceFeedback;
-
-  // Structure
-  document.querySelector('.feedback-icon.structure').nextElementSibling.nextElementSibling.querySelector('.score-fill').style.width = `${data.structureScore}%`;
-  document.querySelector('.feedback-icon.structure').parentNode.querySelector('.score-value').textContent = `${data.structureScore}%`;
-  document.querySelector('.feedback-icon.structure').parentNode.querySelector('p').textContent = data.structureFeedback;
-
-  // Confidence (Grid Item) - Reusing main Confidence Score if needed or calculating separate
-  document.querySelector('.feedback-icon.confidence').nextElementSibling.nextElementSibling.querySelector('.score-fill').style.width = `${data.confidenceScore}%`;
-  document.querySelector('.feedback-icon.confidence').parentNode.querySelector('.score-value').textContent = `${data.confidenceScore}%`;
-  document.querySelector('.feedback-icon.confidence').parentNode.querySelector('p').textContent = "Based on analysis of your tone and content.";
-
-  // Tips
-  const tipsList = document.querySelector('.tips-list');
-  tipsList.innerHTML = '';
-  data.tips.forEach(tip => {
+  const tips = ["Use the STAR method.", "Quantify your achievements.", "Speak confidently."];
+  const list = document.getElementById('tipsList');
+  list.innerHTML = "";
+  tips.forEach(t => {
     const li = document.createElement('li');
-    li.textContent = tip;
-    tipsList.appendChild(li);
+    li.textContent = t;
+    list.appendChild(li);
   });
 }
 
-// ==========================================
-// Toast
-// ==========================================
-function showToast(msg, type = 'success') {
-  const toast = document.createElement('div');
-  toast.className = `toast ${type}`;
-  toast.textContent = msg;
-  document.getElementById('toastContainer').appendChild(toast);
-  setTimeout(() => toast.remove(), 3000);
+function copyTranscript() {
+  const text = document.getElementById('transcriptText');
+  text.select();
+  document.execCommand('copy');
+  showToast('Copied to clipboard', 'success');
+}
+
+function showToast(msg, type) {
+  const t = document.createElement('div');
+  t.className = 'toast';
+  t.textContent = msg;
+  if(type === 'error') t.style.borderLeftColor = '#f43f5e';
+  document.getElementById('toastContainer').appendChild(t);
+  setTimeout(() => t.remove(), 3000);
 }
