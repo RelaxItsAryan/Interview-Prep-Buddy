@@ -353,66 +353,169 @@ function initSpeech() {
   }
 }
 
+function countFillers(text) {
+  const fillers = ["um", "uh", "like", "basically", "you know"];
+  let count = 0;
+  fillers.forEach(f => {
+    const regex = new RegExp(`\\b${f}\\b`, "gi");
+    count += (text.match(regex) || []).length;
+  });
+  return count;
+}
+
+function countSentences(text) {
+  return text.split(/[.!?]/).filter(s => s.trim().length > 0).length;
+}
+
+function getSpeedScore(words, seconds) {
+  const wpm = (words / seconds) * 60;
+  if (wpm >= 120 && wpm <= 160) return 100;
+  if (wpm >= 100 && wpm < 120) return 80;
+  if (wpm > 160 && wpm <= 180) return 70;
+  return 50;
+}
+
+function getSpeedScore(words, seconds) {
+  const wpm = (words / seconds) * 60;
+  if (wpm >= 120 && wpm <= 160) return 100;
+  if (wpm >= 100 && wpm < 120) return 80;
+  if (wpm > 160 && wpm <= 180) return 70;
+  return 50;
+}
+
+
 /* REPORT GENERATION (UPDATED) */
 function generateReport() {
-  // 1. Calculate Voice Score
+  /* ---------- HELPER FUNCTIONS ---------- */
+  function countFillers(text) {
+    const fillers = ["um", "uh", "like", "basically", "you know"];
+    let count = 0;
+    fillers.forEach(f => {
+      const regex = new RegExp(`\\b${f}\\b`, "gi");
+      count += (text.match(regex) || []).length;
+    });
+    return count;
+  }
+
+  function countSentences(text) {
+    return text.split(/[.!?]/).filter(s => s.trim().length > 0).length;
+  }
+
+  function getSpeedScore(words, seconds) {
+    const wpm = (words / Math.max(seconds, 30)) * 60;
+    if (wpm >= 120 && wpm <= 160) return 100;
+    if (wpm >= 100 && wpm < 120) return 80;
+    if (wpm > 160 && wpm <= 180) return 70;
+    return 50;
+  }
+
+  /* ===============================
+     VOICE ANALYSIS
+  =============================== */
   let totalVoiceWords = 0;
-  Object.values(voiceAnswers).forEach(a => totalVoiceWords += a.split(' ').length);
-  const voiceScore = Math.min(100, Math.max(40, totalVoiceWords / 5)); // Slightly stricter
+  let totalFillers = 0;
 
-  // 2. Calculate Text Score (MCQ Accuracy + Text Length)
-  let mcqCorrect = 0;
-  let textLengthScore = 0;
-  
-  textQuestions.forEach(q => {
-      const ans = textAnswers[q.id];
-      if(q.type === 'mcq') {
-          if(ans === q.correct) mcqCorrect++;
-      } else {
-          // Simple length heuristic for text questions
-          if(ans && ans.length > 50) textLengthScore += 20; // 20 pts per decent answer (max 100)
-      }
+  Object.values(voiceAnswers).forEach(ans => {
+    if (!ans) return;
+    totalVoiceWords += ans.split(" ").length;
+    totalFillers += countFillers(ans);
   });
-  
-  const mcqScore = (mcqCorrect / 5) * 100; // 5 MCQs
-  const textScore = Math.min(100, textLengthScore); // 5 Text qs
-  
-  // Weighted Average: 30% MCQ, 30% Text, 40% Voice
-  const finalScore = Math.round((mcqScore * 0.3) + (textScore * 0.3) + (voiceScore * 0.4));
-  
-  document.getElementById('overallScore').textContent = finalScore;
-  document.querySelector('.circle').style.strokeDasharray = `${finalScore}, 100`;
-  
-  let feedbackText = "Good effort. Keep practicing.";
-  if(finalScore > 85) feedbackText = "Outstanding! You are interview ready.";
-  else if(finalScore > 60) feedbackText = "Solid performance. Refine your answers.";
-  
-  document.getElementById('feedbackSummary').textContent = feedbackText;
-  
-  // Update Bars
-  document.getElementById('barClarity').style.width = `${Math.min(100, mcqScore)}%`; // Mapped to MCQ Logic
-  document.getElementById('valClarity').textContent = `${Math.round(mcqScore)}%`;
-  
-  document.getElementById('barRelevance').style.width = `${Math.min(100, textScore)}%`; // Mapped to Text Detail
-  document.getElementById('valRelevance').textContent = `${Math.round(textScore)}%`;
-  
-  document.getElementById('barStructure').style.width = `${Math.min(100, voiceScore)}%`; // Mapped to Voice Flow
-  document.getElementById('valStructure').textContent = `${Math.round(voiceScore)}%`;
 
-  const tips = [
-    "Review your MCQ logic answers.",
-    "Ensure written answers explain 'Why' and 'How'.",
-    "In voice answers, aim for a steady pace.",
-    "Use the STAR method for behavioral questions."
-  ];
-  const list = document.getElementById('tipsList');
+  const speedScore = getSpeedScore(totalVoiceWords, seconds || 60);
+  const fillerPenalty = totalVoiceWords
+    ? (totalFillers / totalVoiceWords) * 100
+    : 0;
+  const fillerScore = Math.max(40, 100 - fillerPenalty);
+  const completenessScore = totalVoiceWords >= 150 ? 100 : 60;
+
+  const voiceScore = Math.round(
+    speedScore * 0.4 +
+    fillerScore * 0.3 +
+    completenessScore * 0.3
+  );
+
+  /* ===============================
+     TEXT + MCQ ANALYSIS
+  =============================== */
+  let mcqCorrect = 0;
+  let textQualityScore = 0;
+
+  textQuestions.forEach(q => {
+    const ans = textAnswers[q.id];
+
+    if (q.type === "mcq") {
+      if (ans === q.correct) mcqCorrect++;
+    } else {
+      if (!ans) return;
+
+      const words = ans.split(" ").length;
+      const sentences = countSentences(ans);
+
+      if (sentences >= 3 && words >= 40) textQualityScore += 20;
+      else if (sentences >= 2 && words >= 25) textQualityScore += 12;
+      else textQualityScore += 6;
+    }
+  });
+
+  const mcqScore = (mcqCorrect / 5) * 100; // 5 MCQs
+  const textScore = Math.min(100, textQualityScore);
+
+  /* ===============================
+     FINAL SCORE (WEIGHTED)
+  =============================== */
+  const finalScore = Math.round(
+    mcqScore * 0.25 +
+    textScore * 0.30 +
+    voiceScore * 0.45
+  );
+
+  /* ===============================
+     UPDATE UI
+  =============================== */
+  document.getElementById("overallScore").textContent = finalScore;
+  document.querySelector(".circle").style.strokeDasharray = `${finalScore}, 100`;
+
+  let summary = "Good effort. Keep practicing.";
+  if (finalScore > 85) summary = "Outstanding! You are interview ready.";
+  else if (finalScore > 65) summary = "Strong performance. Minor refinements needed.";
+
+  document.getElementById("feedbackSummary").textContent = summary;
+
+  document.getElementById("barClarity").style.width = `${Math.round(mcqScore)}%`;
+  document.getElementById("valClarity").textContent = `${Math.round(mcqScore)}%`;
+
+  document.getElementById("barRelevance").style.width = `${Math.round(textScore)}%`;
+  document.getElementById("valRelevance").textContent = `${Math.round(textScore)}%`;
+
+  document.getElementById("barStructure").style.width = `${Math.round(voiceScore)}%`;
+  document.getElementById("valStructure").textContent = `${Math.round(voiceScore)}%`;
+
+  /* ===============================
+     SMART FEEDBACK
+  =============================== */
+  const tips = [];
+
+  if (voiceScore < 60)
+    tips.push("Speak at a steady pace and avoid rushing.");
+  if (totalFillers > 5)
+    tips.push("Reduce filler words like 'um', 'like', and 'basically'.");
+  if (textScore < 60)
+    tips.push("Add clearer reasoning and structured explanations.");
+  if (mcqScore < 60)
+    tips.push("Review situational and logical decision-making.");
+
+  if (tips.length === 0)
+    tips.push("Excellent balance of logic, clarity, and communication.");
+
+  const list = document.getElementById("tipsList");
   list.innerHTML = "";
   tips.forEach(t => {
-    const li = document.createElement('li');
+    const li = document.createElement("li");
     li.textContent = t;
     list.appendChild(li);
   });
 }
+
 
 function copyTranscript() {
   const text = document.getElementById('transcriptText');
@@ -421,7 +524,7 @@ function copyTranscript() {
   showToast('Copied to clipboard', 'success');
 }
 
-function showToast(msg, type) {
+function showToast(msg, type){
   const t = document.createElement('div');
   t.className = 'toast';
   t.textContent = msg;
