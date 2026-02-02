@@ -514,7 +514,57 @@ function generateReport() {
     li.textContent = t;
     list.appendChild(li);
   });
+
+  // AI REVIEW (Frontend Simulation)
+  const aiReview = generateAIReview({
+    finalScore,
+    voiceScore,
+    textScore,
+    mcqScore
+  });
+
+  document.getElementById("aiReviewText").textContent = aiReview;
+
 }
+
+function generateAIReview({ finalScore, voiceScore, textScore, mcqScore }) {
+  let review = "";
+
+  // Overall
+  if (finalScore >= 85) {
+    review += "You demonstrated strong interview readiness with clear communication and logical thinking. ";
+  } else if (finalScore >= 65) {
+    review += "You showed good potential, but some areas need refinement to reach interview-ready confidence. ";
+  } else {
+    review += "This session highlights foundational skills, but more structured practice is recommended. ";
+  }
+
+  // Voice feedback
+  if (voiceScore < 60) {
+    review += "Your verbal responses were either too brief or lacked flow. Focus on pacing and complete explanations. ";
+  } else {
+    review += "Your speaking pace and clarity were appropriate, indicating good communication confidence. ";
+  }
+
+  // Text feedback
+  if (textScore < 60) {
+    review += "Written answers would benefit from clearer structure and explicit reasoning steps. ";
+  } else {
+    review += "Your written responses showed logical thinking and reasonable structure. ";
+  }
+
+  // MCQ feedback
+  if (mcqScore < 60) {
+    review += "Some situational decisions could be improved by considering impact and ethics more carefully. ";
+  } else {
+    review += "Your situational judgment aligns well with professional expectations. ";
+  }
+
+  review += "Continue practicing consistently, and aim to apply structured frameworks like STAR to further improve.";
+
+  return review;
+}
+
 
 
 function copyTranscript() {
