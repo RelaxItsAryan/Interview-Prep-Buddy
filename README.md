@@ -20,6 +20,36 @@ This project is designed as a **frontend-first, beginner-friendly open-source pr
 
 ---
 
+## 📸 Screenshots & UI Walkthrough
+
+### 🏠 Home Page
+The landing page introduces Interview Prep Buddy and highlights its AI-powered interview practice features.
+
+![Home Page](screenshots/home.png)
+
+---
+
+### 🧠 Practice Interview
+Users can practice interview questions, navigate through them, and select answers interactively.
+
+![Practice Page](screenshots/practice-question.png)
+
+---
+
+### 📊 Analysis & Feedback
+After completing a session, users receive an AI-generated analysis report including confidence, clarity, relevance, and structure.
+
+![Analysis Report](screenshots/analysis-report.png)
+
+---
+
+### 🤝 Contribute Section
+The contribution section guides users on how to get involved and contribute to the open-source project.
+
+![Contribute Page](screenshots/contribute.png)
+
+---
+
 ## 🛠 Tech Stack
 
 - **HTML5** – Structure & layout  
