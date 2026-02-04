@@ -1,10 +1,26 @@
 # 🎯 Interview Prep Buddy
 
+> 💡 **New here?** Start by opening `index.html` and clicking **Start Practicing** — no setup required.
+
+
 # Website Link- [interview-buddy.netlify.app](https://interview-buddy.netlify.app/)
 An **open-source interview practice web application** built using **HTML, CSS, and JavaScript**.  
 It helps students practice mock interview questions using **voice-based answers**, view **live transcripts**, and explore a **future-ready AI feedback interface**.
 
 This project is designed as a **frontend-first, beginner-friendly open-source project** with clear extension points for AI and backend integration.
+
+---
+
+## 👥 Who is this for?
+
+Interview Prep Buddy is designed for:
+
+- 🎓 **Students & Fresh Graduates** preparing for technical or behavioral interviews
+- 💼 **Job Seekers** who want to practice interview questions with instant AI feedback
+- 🧑‍💻 **Self-learners** looking to improve confidence, clarity, and communication
+- 🤝 **Open-source contributors** interested in frontend, AI, or web projects
+
+No prior setup or backend knowledge is required — just open the app and start practicing.
 
 ---
 
@@ -17,6 +33,18 @@ This project is designed as a **frontend-first, beginner-friendly open-source pr
 - 🌗 Dark / Light mode toggle (saved in localStorage)
 - 📱 Fully responsive modern UI
 - 🧭 Single Page App-style navigation
+
+---
+
+## 🧭 Usage Flow (How the App Works)
+
+1. Open the app in your browser
+2. Click **Start Practicing** on the home page
+3. Choose a question category (Behavioral / Technical)
+4. Read the question and select or record your answer
+5. Submit your response to receive AI-powered feedback
+6. Review scores for clarity, relevance, and structure
+7. Start a new session to improve your performance
 
 ---
 
