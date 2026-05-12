@@ -155,9 +155,77 @@ body {
 
 /* 8. PRACTICE */
 .container-narrow { max-width: 800px; margin: 0 auto; padding: 0 1.5rem; }
+.vision-card {
+  margin-bottom: 2rem;
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1rem;
+}
+.vision-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 0.8rem;
+}
+.vision-head h3 {
+  font-size: 1rem;
+}
+.vision-status {
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  border: 1px solid rgba(6, 182, 212, 0.35);
+  background: rgba(6, 182, 212, 0.08);
+  color: var(--primary);
+  text-transform: uppercase;
+}
+.vision-content {
+  display: grid;
+  grid-template-columns: 180px 1fr;
+  gap: 1rem;
+  align-items: center;
+}
+.vision-video {
+  width: 100%;
+  height: 120px;
+  border-radius: 12px;
+  object-fit: cover;
+  background: #000;
+  transform: scaleX(-1);
+  border: 1px solid var(--border);
+}
+.vision-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.vision-score-wrap {
+  font-size: 1.8rem;
+  font-weight: 800;
+  color: var(--primary);
+  line-height: 1;
+}
+.vision-summary p {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
 .practice-header { margin-bottom: 2rem; }
 .header-top { display: flex; justify-content: space-between; margin-bottom: 10px; }
 .category-pill { background: rgba(6, 182, 212, 0.1); color: var(--primary); padding: 4px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 700; text-transform: uppercase; }
+.live-confidence {
+  display: inline-flex;
+  padding: 6px 12px;
+  margin-bottom: 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(6, 182, 212, 0.35);
+  background: rgba(6, 182, 212, 0.08);
+  color: var(--primary);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
 .progress-container { height: 6px; background: var(--bg-panel); border-radius: 10px; overflow: hidden; }
 .progress-bar { height: 100%; background: var(--primary); transition: width 0.3s; }
 
@@ -233,7 +301,7 @@ body {
 .circle { fill: none; stroke-width: 3; stroke: var(--primary); stroke-linecap: round; transition: stroke-dasharray 1s ease; }
 .percentage { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 2.5rem; font-weight: 700; color: var(--text-main); }
 
-.metrics-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; margin-bottom: 2rem; }
+.metrics-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.5rem; margin-bottom: 2rem; }
 .metric-card { background: var(--bg-panel); padding: 1.5rem; border-radius: var(--radius); border: 1px solid var(--border); text-align: left; }
 .metric-card h4 { font-size: 1rem; margin-bottom: 10px; color: var(--text-main); }
 .bar-bg { height: 6px; background: var(--bg-app); border-radius: 10px; overflow: hidden; margin-bottom: 10px; }
@@ -276,4 +344,26 @@ body {
   line-height: 1.6;
   color: #cbd5f5;
   font-size: 0.95rem;
+}
+
+@media (max-width: 980px) {
+  .vision-content {
+    grid-template-columns: 1fr;
+  }
+  .vision-video {
+    height: 190px;
+  }
+  .metrics-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .vision-head {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .metrics-grid {
+    grid-template-columns: 1fr;
+  }
 }

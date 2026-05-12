@@ -123,11 +123,24 @@ let currentTranscript = "";
 let timerInt;
 let seconds = 0;
 let practicePhase = 'text'; // 'text' or 'voice'
+let recordingStartedAt = null;
+let voiceDurations = {};
+let confidenceModel = null;
+let webcamStream = null;
+let visionAnimationFrame = null;
+let visionLoadPromise = null;
+let faceLandmarker = null;
+let poseLandmarker = null;
+let lastVisionSampleAt = 0;
+let lastMotionPoint = null;
+let visionState = null;
 
 document.addEventListener('DOMContentLoaded', () => {
   init3D();
   initTheme();
   initSpeech();
+  initVisionState();
+  initConfidenceModel();
   
   // Start Text Phase by default
   updateTextUI();
@@ -135,6 +148,7 @@ document.addEventListener('DOMContentLoaded', () => {
   window.toggleMobileMenu = () => {
     document.getElementById('mobileMenu').classList.toggle('active');
   };
+  window.addEventListener('beforeunload', stopVisionTracking);
 });
 
 /* NAVIGATION */
@@ -151,14 +165,15 @@ function showPage(id) {
   document.getElementById('mobileMenu').classList.remove('active');
   window.scrollTo({ top: 0, behavior: 'smooth' });
 
+  if (id !== 'practice') stopVisionTracking();
+
   // Reset practice state if entering practice
   if(id === 'practice') {
-     practicePhase = 'text';
-     currentTextIndex = 0;
-     currentVoiceIndex = 0;
-     document.getElementById('text-practice-container').style.display = 'block';
-     document.getElementById('voice-practice-container').style.display = 'none';
-     updateTextUI();
+    resetPracticeSession();
+    document.getElementById('text-practice-container').style.display = 'block';
+    document.getElementById('voice-practice-container').style.display = 'none';
+    updateTextUI();
+    startVisionTracking();
   }
 }
 
@@ -170,6 +185,328 @@ function toggleTheme() {
 function initTheme() {
   const saved = localStorage.getItem('theme') || 'dark';
   document.documentElement.setAttribute('data-theme', saved);
+}
+
+function clamp(value, min, max) {
+  return Math.min(max, Math.max(min, value));
+}
+
+function getWordCount(text) {
+  return text.trim().split(/\s+/).filter(Boolean).length;
+}
+
+function resetPracticeSession() {
+  if (isRecording && recognition) recognition.stop();
+  clearInterval(timerInt);
+  stopVisionTracking();
+
+  practicePhase = 'text';
+  currentTextIndex = 0;
+  currentVoiceIndex = 0;
+  textAnswers = {};
+  voiceAnswers = {};
+  voiceDurations = {};
+  currentTranscript = "";
+  seconds = 0;
+  isRecording = false;
+  recordingStartedAt = null;
+
+  document.getElementById('timer').textContent = "00:00";
+  document.getElementById('recordStatus').textContent = "Tap Core to Record";
+  document.getElementById('transcriptText').value = "";
+  document.querySelector('.neural-core').classList.remove('recording');
+  initVisionState();
+  initConfidenceModel();
+}
+
+function initConfidenceModel() {
+  const visionScore = visionState ? visionState.score : 55;
+  confidenceModel = {
+    startedAt: Date.now(),
+    updatedAt: Date.now(),
+    score: 55,
+    metrics: {
+      clarity: 55,
+      relevance: 55,
+      structure: 55,
+      visualConfidence: visionScore,
+      voiceScore: 55,
+      textScore: 55,
+      mcqScore: 55,
+      totalFillers: 0,
+      totalVoiceWords: 0
+    }
+  };
+  updateLiveConfidenceUI();
+}
+
+function updateLiveConfidenceUI() {
+  const liveScore = confidenceModel ? confidenceModel.score : 55;
+  ['textLiveConfidence', 'voiceLiveConfidence'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = `Live Confidence: ${liveScore}%`;
+  });
+}
+
+function initVisionState() {
+  visionState = {
+    score: 55,
+    eyeContact: 55,
+    posture: 55,
+    stability: 55,
+    frames: 0,
+    available: false,
+    active: false
+  };
+  updateVisionUI();
+  setVisionStatus('Waiting to start...');
+}
+
+function smoothMetric(currentValue, nextValue, alpha = 0.15) {
+  return Math.round((currentValue * (1 - alpha)) + (nextValue * alpha));
+}
+
+function setVisionStatus(message) {
+  const el = document.getElementById('visionStatus');
+  if (el) el.textContent = message;
+}
+
+function updateVisionUI() {
+  const scoreEl = document.getElementById('visionLiveScore');
+  const signalEl = document.getElementById('visionSignals');
+  if (scoreEl) scoreEl.textContent = `${Math.round(visionState.score)}`;
+  if (signalEl) {
+    signalEl.textContent =
+      `Eye contact: ${Math.round(visionState.eyeContact)} · ` +
+      `Posture: ${Math.round(visionState.posture)} · ` +
+      `Stability: ${Math.round(visionState.stability)}`;
+  }
+}
+
+async function loadVisionModels() {
+  if (faceLandmarker && poseLandmarker) return;
+  if (visionLoadPromise) return visionLoadPromise;
+
+  visionLoadPromise = (async () => {
+    const visionModule = await import('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.18/+esm');
+    const { FaceLandmarker, PoseLandmarker, FilesetResolver } = visionModule;
+
+    const filesetResolver = await FilesetResolver.forVisionTasks(
+      'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.18/wasm'
+    );
+
+    faceLandmarker = await FaceLandmarker.createFromOptions(filesetResolver, {
+      baseOptions: {
+        modelAssetPath: 'https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task'
+      },
+      runningMode: 'VIDEO',
+      numFaces: 1
+    });
+
+    poseLandmarker = await PoseLandmarker.createFromOptions(filesetResolver, {
+      baseOptions: {
+        modelAssetPath: 'https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task'
+      },
+      runningMode: 'VIDEO',
+      numPoses: 1
+    });
+  })().catch(error => {
+    visionLoadPromise = null;
+    throw error;
+  });
+
+  return visionLoadPromise;
+}
+
+function getDistance2D(a, b) {
+  const dx = a.x - b.x;
+  const dy = a.y - b.y;
+  return Math.sqrt(dx * dx + dy * dy);
+}
+
+function getAveragePoint(points) {
+  const total = points.reduce((acc, p) => ({ x: acc.x + p.x, y: acc.y + p.y }), { x: 0, y: 0 });
+  return {
+    x: total.x / points.length,
+    y: total.y / points.length
+  };
+}
+
+function computeIrisCenter(landmarks, indices) {
+  const points = indices.map(i => landmarks[i]).filter(Boolean);
+  if (points.length === 0) return null;
+  return getAveragePoint(points);
+}
+
+function computeEyeCenterScore(landmarks, eyeInnerIndex, eyeOuterIndex, irisIndices) {
+  const inner = landmarks[eyeInnerIndex];
+  const outer = landmarks[eyeOuterIndex];
+  const iris = computeIrisCenter(landmarks, irisIndices);
+  if (!inner || !outer || !iris) return 55;
+
+  const minX = Math.min(inner.x, outer.x);
+  const maxX = Math.max(inner.x, outer.x);
+  const range = Math.max(maxX - minX, 0.0001);
+  const ratio = clamp((iris.x - minX) / range, 0, 1);
+  const centeredDeviation = Math.abs(ratio - 0.5);
+  return clamp(100 - centeredDeviation * 280, 0, 100);
+}
+
+function updateVisionMetrics(faceResult, poseResult) {
+  const hasFace = faceResult && faceResult.faceLandmarks && faceResult.faceLandmarks.length > 0;
+  const hasPose = poseResult && poseResult.landmarks && poseResult.landmarks.length > 0;
+
+  let eyeContactScore = 55;
+  let postureScore = 55;
+  let stabilityScore = visionState.stability || 55;
+  let trackingPoint = null;
+
+  if (hasFace) {
+    const face = faceResult.faceLandmarks[0];
+    const leftEyeScore = computeEyeCenterScore(face, 33, 133, [468, 469, 470, 471]);
+    const rightEyeScore = computeEyeCenterScore(face, 263, 362, [473, 474, 475, 476]);
+    const gazeScore = (leftEyeScore + rightEyeScore) / 2;
+
+    const leftEyeOuter = face[33];
+    const rightEyeOuter = face[263];
+    const noseTip = face[1];
+    if (leftEyeOuter && rightEyeOuter && noseTip) {
+      const eyeMidX = (leftEyeOuter.x + rightEyeOuter.x) / 2;
+      const eyeWidth = Math.max(Math.abs(rightEyeOuter.x - leftEyeOuter.x), 0.02);
+      const headYawNorm = Math.abs((noseTip.x - eyeMidX) / eyeWidth);
+      const headScore = clamp(100 - headYawNorm * 120, 0, 100);
+
+      eyeContactScore = Math.round(gazeScore * 0.7 + headScore * 0.3);
+      trackingPoint = { x: noseTip.x, y: noseTip.y };
+    } else {
+      eyeContactScore = Math.round(gazeScore);
+    }
+  }
+
+  if (hasPose) {
+    const pose = poseResult.landmarks[0];
+    const leftShoulder = pose[11];
+    const rightShoulder = pose[12];
+    const nose = pose[0];
+    const leftEar = pose[7];
+    const rightEar = pose[8];
+
+    if (leftShoulder && rightShoulder && nose) {
+      const shoulderTilt = Math.abs(leftShoulder.y - rightShoulder.y);
+      const shoulderScore = clamp(100 - shoulderTilt * 360, 0, 100);
+
+      const shoulderMidX = (leftShoulder.x + rightShoulder.x) / 2;
+      const shoulderWidth = Math.max(Math.abs(rightShoulder.x - leftShoulder.x), 0.02);
+      const headX = (leftEar && rightEar)
+        ? (leftEar.x + rightEar.x) / 2
+        : nose.x;
+      const leanNorm = Math.abs(headX - shoulderMidX) / shoulderWidth;
+      const leanScore = clamp(100 - leanNorm * 120, 0, 100);
+
+      postureScore = Math.round(shoulderScore * 0.55 + leanScore * 0.45);
+      if (!trackingPoint) trackingPoint = { x: nose.x, y: nose.y };
+    }
+  }
+
+  if (trackingPoint) {
+    if (lastMotionPoint) {
+      const movement = getDistance2D(trackingPoint, lastMotionPoint);
+      const frameStability = clamp(100 - movement * 2600, 0, 100);
+      stabilityScore = smoothMetric(stabilityScore, frameStability, 0.22);
+    }
+    lastMotionPoint = trackingPoint;
+  }
+
+  const visibilityScore = hasFace && hasPose ? 100 : hasFace || hasPose ? 70 : 30;
+  const visionScoreRaw =
+    eyeContactScore * 0.45 +
+    postureScore * 0.35 +
+    stabilityScore * 0.20;
+  const adjustedVisionScore = clamp(visionScoreRaw * (visibilityScore / 100), 0, 100);
+
+  visionState.eyeContact = smoothMetric(visionState.eyeContact, eyeContactScore);
+  visionState.posture = smoothMetric(visionState.posture, postureScore);
+  visionState.stability = smoothMetric(visionState.stability, stabilityScore);
+  visionState.score = smoothMetric(visionState.score, adjustedVisionScore);
+  visionState.frames += 1;
+  visionState.available = hasFace || hasPose;
+  visionState.active = true;
+  setVisionStatus(visionState.available ? 'Analyzing confidence' : 'Align face in camera');
+  updateVisionUI();
+}
+
+function processVisionFrame() {
+  if (!visionState.active) return;
+
+  const video = document.getElementById('visionVideo');
+  if (!video || video.readyState < 2 || !faceLandmarker || !poseLandmarker) {
+    visionAnimationFrame = requestAnimationFrame(processVisionFrame);
+    return;
+  }
+
+  const now = performance.now();
+  if (now - lastVisionSampleAt >= 120) {
+    const faceResult = faceLandmarker.detectForVideo(video, now);
+    const poseResult = poseLandmarker.detectForVideo(video, now);
+    updateVisionMetrics(faceResult, poseResult);
+    recomputeConfidenceModel();
+    lastVisionSampleAt = now;
+  }
+
+  visionAnimationFrame = requestAnimationFrame(processVisionFrame);
+}
+
+async function startVisionTracking() {
+  try {
+    stopVisionTracking();
+    setVisionStatus('Loading model...');
+    await loadVisionModels();
+    setVisionStatus('Starting camera...');
+
+    webcamStream = await navigator.mediaDevices.getUserMedia({
+      video: {
+        facingMode: 'user',
+        width: { ideal: 640 },
+        height: { ideal: 480 }
+      },
+      audio: false
+    });
+
+    const video = document.getElementById('visionVideo');
+    video.srcObject = webcamStream;
+    await video.play();
+
+    visionState.active = true;
+    visionState.available = false;
+    lastMotionPoint = null;
+    lastVisionSampleAt = 0;
+    setVisionStatus('Analyzing confidence');
+    processVisionFrame();
+  } catch (error) {
+    visionState.active = false;
+    visionState.available = false;
+    setVisionStatus('Camera permission needed');
+    showToast('Camera permission is required for real confidence analysis', 'error');
+    recomputeConfidenceModel();
+  }
+}
+
+function stopVisionTracking() {
+  if (visionAnimationFrame) {
+    cancelAnimationFrame(visionAnimationFrame);
+    visionAnimationFrame = null;
+  }
+
+  if (webcamStream) {
+    webcamStream.getTracks().forEach(track => track.stop());
+    webcamStream = null;
+  }
+
+  const video = document.getElementById('visionVideo');
+  if (video) video.srcObject = null;
+
+  if (visionState) visionState.active = false;
+  setVisionStatus('Stopped');
 }
 
 /* ============================
@@ -201,6 +538,7 @@ function updateTextUI() {
                 // Visual update
                 document.querySelectorAll('.mcq-option-btn').forEach(b => b.classList.remove('selected'));
                 btn.classList.add('selected');
+                recomputeConfidenceModel();
             };
             optionsDiv.appendChild(btn);
         });
@@ -210,7 +548,10 @@ function updateTextUI() {
         textarea.className = 'text-answer-input fade-in';
         textarea.placeholder = "Type your answer here...";
         textarea.value = textAnswers[q.id] || "";
-        textarea.oninput = (e) => { textAnswers[q.id] = e.target.value; };
+        textarea.oninput = (e) => {
+          textAnswers[q.id] = e.target.value;
+          recomputeConfidenceModel();
+        };
         container.appendChild(textarea);
     }
 }
@@ -274,7 +615,10 @@ function updateVoiceUI() {
 
 function nextQuestion() { saveVoiceAnswer(); currentVoiceIndex++; updateVoiceUI(); }
 function prevQuestion() { saveVoiceAnswer(); currentVoiceIndex--; updateVoiceUI(); }
-function saveVoiceAnswer() { voiceAnswers[questions[currentVoiceIndex].id] = currentTranscript; }
+function saveVoiceAnswer() {
+  voiceAnswers[questions[currentVoiceIndex].id] = currentTranscript.trim();
+  recomputeConfidenceModel();
+}
 
 function finishSession() {
   saveVoiceAnswer();
@@ -292,9 +636,12 @@ function toggleRecording() { isRecording ? stopRec() : startRec(); }
 
 async function startRec() {
   try {
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    await navigator.mediaDevices.getUserMedia({ audio: true });
     isRecording = true;
+    recordingStartedAt = Date.now();
+    seconds = 0;
     currentTranscript = ""; 
+    document.getElementById('timer').textContent = "00:00";
     document.getElementById('transcriptText').value = "";
     document.getElementById('recordStatus').textContent = "Recording...";
     document.querySelector('.neural-core').classList.add('recording');
@@ -314,9 +661,18 @@ async function startRec() {
 }
 
 function stopRec() {
+  if (!isRecording) return;
+
   isRecording = false;
   clearInterval(timerInt);
   if (recognition) recognition.stop();
+
+  const questionId = questions[currentVoiceIndex].id;
+  const elapsedSeconds = recordingStartedAt
+    ? Math.max(1, Math.round((Date.now() - recordingStartedAt) / 1000))
+    : Math.max(seconds, 1);
+  voiceDurations[questionId] = (voiceDurations[questionId] || 0) + elapsedSeconds;
+  recordingStartedAt = null;
   
   document.querySelector('.neural-core').classList.remove('recording');
   document.getElementById('recordStatus').textContent = "Tap Core to Record";
@@ -326,7 +682,10 @@ function stopRec() {
 }
 
 function resetRec() {
+  if (isRecording && recognition) recognition.stop();
   clearInterval(timerInt);
+  isRecording = false;
+  recordingStartedAt = null;
   seconds = 0;
   document.getElementById('timer').textContent = "00:00";
   document.getElementById('recordStatus').textContent = "Tap Core to Record";
@@ -368,127 +727,173 @@ function countSentences(text) {
 }
 
 function getSpeedScore(words, seconds) {
-  const wpm = (words / seconds) * 60;
+  const safeSeconds = Math.max(seconds, 30);
+  const wpm = (words / safeSeconds) * 60;
   if (wpm >= 120 && wpm <= 160) return 100;
   if (wpm >= 100 && wpm < 120) return 80;
   if (wpm > 160 && wpm <= 180) return 70;
   return 50;
 }
 
-function getSpeedScore(words, seconds) {
-  const wpm = (words / seconds) * 60;
-  if (wpm >= 120 && wpm <= 160) return 100;
-  if (wpm >= 100 && wpm < 120) return 80;
-  if (wpm > 160 && wpm <= 180) return 70;
-  return 50;
+function recomputeConfidenceModel() {
+  const mcqQuestions = textQuestions.filter(q => q.type === 'mcq');
+  const openTextQuestions = textQuestions.filter(q => q.type === 'text');
+
+  const answeredMcqs = mcqQuestions.filter(q => Number.isInteger(textAnswers[q.id]));
+  const correctMcqs = answeredMcqs.filter(q => textAnswers[q.id] === q.correct).length;
+  const mcqScore = answeredMcqs.length
+    ? Math.round((correctMcqs / answeredMcqs.length) * 100)
+    : 55;
+
+  let textWordTotal = 0;
+  let textSentenceTotal = 0;
+  let textAnswered = 0;
+  openTextQuestions.forEach(q => {
+    const ans = (textAnswers[q.id] || "").trim();
+    if (!ans) return;
+    textAnswered++;
+    textWordTotal += getWordCount(ans);
+    textSentenceTotal += countSentences(ans);
+  });
+
+  const avgTextWords = textAnswered ? textWordTotal / textAnswered : 0;
+  const avgTextSentences = textAnswered ? textSentenceTotal / textAnswered : 0;
+  const textDepthScore = textAnswered ? clamp((avgTextWords / 45) * 100, 0, 100) : 55;
+  const textStructureScore = textAnswered ? clamp((avgTextSentences / 3) * 100, 0, 100) : 55;
+  const textScore = textAnswered
+    ? Math.round(textDepthScore * 0.5 + textStructureScore * 0.5)
+    : 55;
+
+  let totalVoiceWords = 0;
+  let totalFillers = 0;
+  let totalVoiceSeconds = 0;
+  let voiceAnswered = 0;
+  questions.forEach(q => {
+    const ans = (voiceAnswers[q.id] || "").trim();
+    if (!ans) return;
+    voiceAnswered++;
+    totalVoiceWords += getWordCount(ans);
+    totalFillers += countFillers(ans);
+    totalVoiceSeconds += Math.max(voiceDurations[q.id] || 0, 15);
+  });
+
+  const effectiveVoiceSeconds = totalVoiceSeconds || (voiceAnswered * 30);
+  const paceScore = voiceAnswered ? getSpeedScore(totalVoiceWords, effectiveVoiceSeconds) : 55;
+  const fillerRatio = totalVoiceWords ? (totalFillers / totalVoiceWords) : 0;
+  const clarityFromFillers = voiceAnswered ? clamp((1 - fillerRatio * 4) * 100, 35, 100) : 55;
+  const completenessScore = voiceAnswered
+    ? clamp(((totalVoiceWords / voiceAnswered) / 24) * 100, 0, 100)
+    : 55;
+  const voiceScore = voiceAnswered
+    ? Math.round(paceScore * 0.35 + clarityFromFillers * 0.40 + completenessScore * 0.25)
+    : 55;
+
+  const answeredTotal = answeredMcqs.length + textAnswered + voiceAnswered;
+  const expectedTotal = textQuestions.length + questions.length;
+  const engagementScore = answeredTotal === 0
+    ? 55
+    : Math.round(clamp((0.35 + (answeredTotal / expectedTotal) * 0.65) * 100, 0, 100));
+
+  const eyeContact = visionState ? Math.round(visionState.eyeContact) : 55;
+  const posture = visionState ? Math.round(visionState.posture) : 55;
+  const stability = visionState ? Math.round(visionState.stability) : 55;
+  const visualConfidence = visionState ? Math.round(visionState.score) : 55;
+  const visualWeight = visionState && visionState.available ? 0.24 : 0.10;
+  const nonVisualScore =
+    mcqScore * 0.24 +
+    textScore * 0.24 +
+    voiceScore * 0.37 +
+    engagementScore * 0.15;
+
+  const overallScore = Math.round(clamp(
+    nonVisualScore * (1 - visualWeight) + (visualConfidence * visualWeight),
+    0,
+    100
+  ));
+
+  const clarity = Math.round(clamp(
+    (paceScore * 0.3) + (clarityFromFillers * 0.35) + (eyeContact * 0.35),
+    0,
+    100
+  ));
+  const relevance = Math.round(clamp(
+    (mcqScore * 0.5) + (textDepthScore * 0.35) + (stability * 0.15),
+    0,
+    100
+  ));
+  const structure = Math.round(clamp(
+    (textStructureScore * 0.35) + (completenessScore * 0.35) + (posture * 0.30),
+    0,
+    100
+  ));
+
+  const startedAt = confidenceModel ? confidenceModel.startedAt : Date.now();
+  confidenceModel = {
+    startedAt,
+    updatedAt: Date.now(),
+    score: overallScore,
+    metrics: {
+      clarity,
+      relevance,
+      structure,
+      visualConfidence,
+      eyeContact,
+      posture,
+      stability,
+      voiceScore,
+      textScore,
+      mcqScore,
+      totalFillers,
+      totalVoiceWords
+    }
+  };
+
+  updateLiveConfidenceUI();
+  return confidenceModel;
+}
+
+function getScoreSummary(score) {
+  if (score > 85) return "Outstanding! You are interview ready.";
+  if (score > 65) return "Strong performance. Minor refinements needed.";
+  return "Good effort. Keep practicing.";
 }
 
 
 /* REPORT GENERATION (UPDATED) */
 function generateReport() {
-  /* ---------- HELPER FUNCTIONS ---------- */
-  function countFillers(text) {
-    const fillers = ["um", "uh", "like", "basically", "you know"];
-    let count = 0;
-    fillers.forEach(f => {
-      const regex = new RegExp(`\\b${f}\\b`, "gi");
-      count += (text.match(regex) || []).length;
-    });
-    return count;
-  }
-
-  function countSentences(text) {
-    return text.split(/[.!?]/).filter(s => s.trim().length > 0).length;
-  }
-
-  function getSpeedScore(words, seconds) {
-    const wpm = (words / Math.max(seconds, 30)) * 60;
-    if (wpm >= 120 && wpm <= 160) return 100;
-    if (wpm >= 100 && wpm < 120) return 80;
-    if (wpm > 160 && wpm <= 180) return 70;
-    return 50;
-  }
-
-  /* ===============================
-     VOICE ANALYSIS
-  =============================== */
-  let totalVoiceWords = 0;
-  let totalFillers = 0;
-
-  Object.values(voiceAnswers).forEach(ans => {
-    if (!ans) return;
-    totalVoiceWords += ans.split(" ").length;
-    totalFillers += countFillers(ans);
-  });
-
-  const speedScore = getSpeedScore(totalVoiceWords, seconds || 60);
-  const fillerPenalty = totalVoiceWords
-    ? (totalFillers / totalVoiceWords) * 100
-    : 0;
-  const fillerScore = Math.max(40, 100 - fillerPenalty);
-  const completenessScore = totalVoiceWords >= 150 ? 100 : 60;
-
-  const voiceScore = Math.round(
-    speedScore * 0.4 +
-    fillerScore * 0.3 +
-    completenessScore * 0.3
-  );
-
-  /* ===============================
-     TEXT + MCQ ANALYSIS
-  =============================== */
-  let mcqCorrect = 0;
-  let textQualityScore = 0;
-
-  textQuestions.forEach(q => {
-    const ans = textAnswers[q.id];
-
-    if (q.type === "mcq") {
-      if (ans === q.correct) mcqCorrect++;
-    } else {
-      if (!ans) return;
-
-      const words = ans.split(" ").length;
-      const sentences = countSentences(ans);
-
-      if (sentences >= 3 && words >= 40) textQualityScore += 20;
-      else if (sentences >= 2 && words >= 25) textQualityScore += 12;
-      else textQualityScore += 6;
-    }
-  });
-
-  const mcqScore = (mcqCorrect / 5) * 100; // 5 MCQs
-  const textScore = Math.min(100, textQualityScore);
-
-  /* ===============================
-     FINAL SCORE (WEIGHTED)
-  =============================== */
-  const finalScore = Math.round(
-    mcqScore * 0.25 +
-    textScore * 0.30 +
-    voiceScore * 0.45
-  );
+  const model = recomputeConfidenceModel();
+  const finalScore = model.score;
+  const {
+    clarity,
+    relevance,
+    structure,
+    visualConfidence,
+    eyeContact,
+    posture,
+    voiceScore,
+    textScore,
+    mcqScore,
+    totalFillers
+  } = model.metrics;
 
   /* ===============================
      UPDATE UI
   =============================== */
   document.getElementById("overallScore").textContent = finalScore;
   document.querySelector(".circle").style.strokeDasharray = `${finalScore}, 100`;
+  document.getElementById("feedbackSummary").textContent = getScoreSummary(finalScore);
 
-  let summary = "Good effort. Keep practicing.";
-  if (finalScore > 85) summary = "Outstanding! You are interview ready.";
-  else if (finalScore > 65) summary = "Strong performance. Minor refinements needed.";
+  document.getElementById("barClarity").style.width = `${clarity}%`;
+  document.getElementById("valClarity").textContent = `${clarity}%`;
 
-  document.getElementById("feedbackSummary").textContent = summary;
+  document.getElementById("barRelevance").style.width = `${relevance}%`;
+  document.getElementById("valRelevance").textContent = `${relevance}%`;
 
-  document.getElementById("barClarity").style.width = `${Math.round(mcqScore)}%`;
-  document.getElementById("valClarity").textContent = `${Math.round(mcqScore)}%`;
+  document.getElementById("barStructure").style.width = `${structure}%`;
+  document.getElementById("valStructure").textContent = `${structure}%`;
 
-  document.getElementById("barRelevance").style.width = `${Math.round(textScore)}%`;
-  document.getElementById("valRelevance").textContent = `${Math.round(textScore)}%`;
-
-  document.getElementById("barStructure").style.width = `${Math.round(voiceScore)}%`;
-  document.getElementById("valStructure").textContent = `${Math.round(voiceScore)}%`;
+  document.getElementById("barPresence").style.width = `${visualConfidence}%`;
+  document.getElementById("valPresence").textContent = `${visualConfidence}%`;
 
   /* ===============================
      SMART FEEDBACK
@@ -503,6 +908,14 @@ function generateReport() {
     tips.push("Add clearer reasoning and structured explanations.");
   if (mcqScore < 60)
     tips.push("Review situational and logical decision-making.");
+  if (!visionState || !visionState.available)
+    tips.push("Enable camera tracking for real eye-contact and posture-based confidence scoring.");
+  if (visualConfidence < 60)
+    tips.push("Keep your face centered, maintain eye contact, and sit upright for stronger confidence signals.");
+  if (eyeContact < 60)
+    tips.push("Look toward the camera more consistently to improve perceived confidence.");
+  if (posture < 60)
+    tips.push("Reduce leaning and keep shoulders level to project stronger posture.");
 
   if (tips.length === 0)
     tips.push("Excellent balance of logic, clarity, and communication.");
@@ -520,14 +933,15 @@ function generateReport() {
     finalScore,
     voiceScore,
     textScore,
-    mcqScore
+    mcqScore,
+    visualConfidence
   });
 
   document.getElementById("aiReviewText").textContent = aiReview;
 
 }
 
-function generateAIReview({ finalScore, voiceScore, textScore, mcqScore }) {
+function generateAIReview({ finalScore, voiceScore, textScore, mcqScore, visualConfidence }) {
   let review = "";
 
   // Overall
@@ -558,6 +972,12 @@ function generateAIReview({ finalScore, voiceScore, textScore, mcqScore }) {
     review += "Some situational decisions could be improved by considering impact and ethics more carefully. ";
   } else {
     review += "Your situational judgment aligns well with professional expectations. ";
+  }
+
+  if (visualConfidence < 60) {
+    review += "Visual confidence signals were weak at times, especially around eye contact or posture. ";
+  } else {
+    review += "Your on-camera eye contact and posture reflected confident presence. ";
   }
 
   review += "Continue practicing consistently, and aim to apply structured frameworks like STAR to further improve.";

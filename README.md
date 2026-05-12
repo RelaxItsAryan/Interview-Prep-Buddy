@@ -13,7 +13,9 @@ This project is designed as a **frontend-first, beginner-friendly open-source pr
 - 🎤 Voice-based interview answers (microphone recording)
 - 📝 Live speech-to-text transcription (Web Speech API)
 - 📚 Mock interview questions with categories & tips
-- 📊 Confidence score & AI feedback UI (currently mocked)
+- 🎥 Pretrained webcam confidence model (eye contact, posture, movement)
+- 📊 Real-time confidence score from interview start
+- 🤖 Session analysis with heuristic AI-style feedback (frontend)
 - 🌗 Dark / Light mode toggle (saved in localStorage)
 - 📱 Fully responsive modern UI
 - 🧭 Single Page App-style navigation
@@ -26,11 +28,12 @@ This project is designed as a **frontend-first, beginner-friendly open-source pr
 - **CSS3** – Styling, theming, responsiveness  
 - **Vanilla JavaScript** – App logic & interactions  
 - **Web Speech API** – Speech-to-text (temporary solution)
+- **MediaPipe Tasks Vision** – Pretrained face + pose landmark inference in browser
 
 > 🔮 Planned (Not implemented yet):
 > - Whisper API for accurate transcription  
 > - FastAPI backend  
-> - NLP-based AI feedback & confidence scoring  
+> - Advanced NLP-based feedback & calibrated confidence scoring  
 
 ---
 
@@ -77,13 +80,18 @@ This will be replaced by **Whisper API** in future versions.
 
 ---
 
-## 🧠 AI Feedback (Current Status)
+## 🎥 Camera Confidence Analysis
 
-The AI feedback and confidence scores are **UI placeholders only**.
+When practice starts, the app opens your webcam and runs **pretrained face and pose models** in-browser to estimate:
+- Eye-contact consistency
+- Posture quality
+- Movement stability
+
+These signals are combined with your text + voice responses for a real-time confidence score.
 
 ### Planned Improvements:
 - NLP-based answer evaluation
-- Confidence scoring logic
+- Advanced multimodal confidence calibration
 - Backend-powered AI feedback
 
 ---

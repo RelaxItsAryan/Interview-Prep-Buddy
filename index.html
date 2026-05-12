@@ -116,17 +116,33 @@
 
   <main id="page-practice" class="page">
     <div class="container-narrow">
+      <div class="vision-card">
+        <div class="vision-head">
+          <h3>🎥 Confidence Vision Model</h3>
+          <span id="visionStatus" class="vision-status">Waiting to start...</span>
+        </div>
+        <div class="vision-content">
+          <video id="visionVideo" class="vision-video" autoplay playsinline muted></video>
+          <div class="vision-summary">
+            <div class="vision-score-wrap">
+              <span id="visionLiveScore">55</span><span>%</span>
+            </div>
+            <p id="visionSignals">Eye contact: 55 · Posture: 55 · Stability: 55</p>
+          </div>
+        </div>
+      </div>
       
       <div id="text-practice-container" style="display: block;">
-        <div class="practice-header">
-           <div class="header-top">
-             <span class="category-pill" id="textCategory">Logic & Behavior</span>
-             <span class="step-count">Question <span id="textCurrentQ">1</span> of 10</span>
-           </div>
-           <div class="progress-container">
-             <div class="progress-bar" id="textProgressFill" style="width: 10%"></div>
-           </div>
-        </div>
+         <div class="practice-header">
+            <div class="header-top">
+              <span class="category-pill" id="textCategory">Logic & Behavior</span>
+              <span class="step-count">Question <span id="textCurrentQ">1</span> of 10</span>
+            </div>
+            <div class="live-confidence" id="textLiveConfidence">Live Confidence: 55%</div>
+            <div class="progress-container">
+              <div class="progress-bar" id="textProgressFill" style="width: 10%"></div>
+            </div>
+         </div>
 
         <div class="question-card">
            <h2 id="textQuestionDisplay">Question goes here...</h2>
@@ -151,6 +167,7 @@
             <span class="category-pill" id="questionCategory">Behavioral</span>
             <span class="step-count">Question <span id="currentQuestion">1</span> of 10</span>
           </div>
+          <div class="live-confidence" id="voiceLiveConfidence">Live Confidence: 55%</div>
           <div class="progress-container">
             <div class="progress-bar" id="progressFill" style="width: 20%"></div>
           </div>
@@ -239,6 +256,12 @@
           <h4>Structure</h4>
           <div class="bar-bg"><div class="bar-fill" id="barStructure" style="width: 0%"></div></div>
           <span class="metric-val" id="valStructure">0%</span>
+        </div>
+        <div class="metric-card">
+          <div class="icon-box">🎥</div>
+          <h4>Visual Confidence</h4>
+          <div class="bar-bg"><div class="bar-fill" id="barPresence" style="width: 0%"></div></div>
+          <span class="metric-val" id="valPresence">0%</span>
         </div>
       </div>
 
